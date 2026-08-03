@@ -25,6 +25,9 @@ function toDocData(draft: EventDraft): Record<string, unknown> {
   }
   if (draft.time) data.time = draft.time
   if (draft.description) data.description = draft.description
+  if (draft.endDate && draft.endDate !== draft.date) data.endDate = draft.endDate
+  if (draft.isDday) data.isDday = true
+  if (draft.isPinned) data.isPinned = true
   return data
 }
 
@@ -50,9 +53,12 @@ export function useEvents() {
             id: d.id,
             title: (data.title as string) ?? '',
             date: (data.date as string) ?? '',
+            endDate: typeof data.endDate === 'string' ? data.endDate : undefined,
             time: (data.time as string) || undefined,
             category: (data.category as CategoryId) ?? 'etc',
             description: (data.description as string) || undefined,
+            isDday: data.isDday === true,
+            isPinned: data.isPinned === true,
             createdAt:
               typeof data.createdAt === 'number'
                 ? (data.createdAt as number)
@@ -92,6 +98,9 @@ export function useEvents() {
         // Clear optional fields when removed.
         time: draft.time ?? null,
         description: draft.description ?? null,
+        endDate: draft.endDate && draft.endDate !== draft.date ? draft.endDate : null,
+        isDday: draft.isDday === true,
+        isPinned: draft.isPinned === true,
       })
     },
     [db],
