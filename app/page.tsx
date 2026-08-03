@@ -6,7 +6,11 @@ import type { ClassEvent, EventDraft } from '@/lib/types'
 import type { CategoryId } from '@/lib/categories'
 import {
   addMonths,
+  dateKeyInRange,
+  daysBetween,
   formatFullDate,
+  getDateRangeKeys,
+  getEventEndDate,
   parseDateKey,
   toDateKey,
 } from '@/lib/date-utils'
@@ -18,6 +22,7 @@ import { SearchBar } from '@/components/search-bar'
 import { EventList } from '@/components/event-list'
 import { BottomNav, type MobileView } from '@/components/bottom-nav'
 import { EventDialog } from '@/components/event-dialog'
+import { EventHighlights } from '@/components/event-highlights'
 import { AdminAuthButton } from '@/components/admin-auth'
 import { useFirebase } from '@/components/firebase-provider'
 
@@ -55,23 +60,25 @@ export default function Page() {
   const eventsByDay = useMemo(() => {
     const map = new Map<string, ClassEvent[]>()
     for (const event of categoryFiltered) {
-      const list = map.get(event.date) ?? []
-      list.push(event)
-      map.set(event.date, list)
+      for (const key of getDateRangeKeys(event.date, event.endDate)) {
+        const list = map.get(key) ?? []
+        list.push(event)
+        map.set(key, list)
+      }
     }
     for (const [key, list] of map) map.set(key, sortEvents(list))
     return map
   }, [categoryFiltered])
 
   const selectedDayEvents = useMemo(
-    () => sortEvents(categoryFiltered.filter((e) => e.date === selectedKey)),
+    () => sortEvents(categoryFiltered.filter((e) => dateKeyInRange(selectedKey, e))),
     [categoryFiltered, selectedKey],
   )
 
   const searchResults = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) {
-      return sortEvents(categoryFiltered.filter((e) => e.date >= todayKey))
+      return sortEvents(categoryFiltered.filter((e) => getEventEndDate(e) >= todayKey))
     }
     return sortEvents(
       categoryFiltered.filter(
@@ -81,6 +88,32 @@ export default function Page() {
       ),
     )
   }, [categoryFiltered, query, todayKey])
+
+  const ddayEvents = useMemo(
+    () =>
+      [...events]
+        .filter((event) => event.isDday)
+        .sort((a, b) => {
+          const aDistance = todayKey < a.date
+            ? daysBetween(todayKey, a.date)
+            : todayKey <= getEventEndDate(a)
+              ? 0
+              : daysBetween(getEventEndDate(a), todayKey)
+          const bDistance = todayKey < b.date
+            ? daysBetween(todayKey, b.date)
+            : todayKey <= getEventEndDate(b)
+              ? 0
+              : daysBetween(getEventEndDate(b), todayKey)
+          return aDistance - bDistance
+        })
+        .slice(0, 3),
+    [events, todayKey],
+  )
+
+  const pinnedEvents = useMemo(
+    () => sortEvents(events.filter((event) => event.isPinned)).slice(0, 3),
+    [events],
+  )
 
   const hasQuery = query.trim().length > 0
 
@@ -210,6 +243,14 @@ export default function Page() {
             </p>
           ) : (
             <>
+              <EventHighlights
+                ddayEvents={ddayEvents}
+                pinnedEvents={pinnedEvents}
+                todayKey={todayKey}
+                canManage={isAdmin}
+                onEdit={openEdit}
+              />
+
               {/* Phone: single column, tab-driven */}
               <div className="flex flex-col gap-4 md:hidden">
                 {mobileView === 'calendar' ? (
