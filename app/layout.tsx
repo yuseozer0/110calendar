@@ -4,17 +4,13 @@ import { Noto_Sans_KR } from 'next/font/google'
 import { FirebaseProvider, type FirebaseConfig } from '@/components/firebase-provider'
 import './globals.css'
 
-function env(primary: string, fallback: string): string {
-  return process.env[primary] ?? process.env[fallback] ?? ''
-}
-
 const firebaseConfig: FirebaseConfig = {
-  apiKey: env('NEXT_PUBLIC_FIREBASE_API_KEY', 'apiKey'),
-  authDomain: env('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN', 'authDomain'),
-  projectId: env('NEXT_PUBLIC_FIREBASE_PROJECT_ID', 'projectId'),
-  storageBucket: env('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET', 'storageBucket'),
-  messagingSenderId: env('NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID', 'messagingSenderId'),
-  appId: env('NEXT_PUBLIC_FIREBASE_APP_ID', 'appId'),
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? '',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? '',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? '',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? '',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? '',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? '',
 }
 
 const notoSansKr = Noto_Sans_KR({
