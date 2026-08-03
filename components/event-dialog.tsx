@@ -18,9 +18,12 @@ interface EventDialogProps {
 export function EventDialog({ open, defaultDate, editing, onClose, onSave }: EventDialogProps) {
   const [title, setTitle] = useState('')
   const [date, setDate] = useState(defaultDate)
+  const [endDate, setEndDate] = useState(defaultDate)
   const [time, setTime] = useState('')
   const [category, setCategory] = useState<CategoryId>('performance')
   const [description, setDescription] = useState('')
+  const [isDday, setIsDday] = useState(false)
+  const [isPinned, setIsPinned] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -30,15 +33,21 @@ export function EventDialog({ open, defaultDate, editing, onClose, onSave }: Eve
     if (editing) {
       setTitle(editing.title)
       setDate(editing.date)
+      setEndDate(editing.endDate ?? editing.date)
       setTime(editing.time ?? '')
       setCategory(editing.category)
       setDescription(editing.description ?? '')
+      setIsDday(editing.isDday === true)
+      setIsPinned(editing.isPinned === true)
     } else {
       setTitle('')
       setDate(defaultDate)
+      setEndDate(defaultDate)
       setTime('')
       setCategory('performance')
       setDescription('')
+      setIsDday(false)
+      setIsPinned(false)
     }
   }, [open, editing, defaultDate])
 
@@ -55,16 +64,23 @@ export function EventDialog({ open, defaultDate, editing, onClose, onSave }: Eve
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!title.trim() || !date || saving) return
+    if (!title.trim() || !date || !endDate || saving) return
+    if (endDate < date) {
+      setError('종료일은 시작일보다 빠를 수 없습니다.')
+      return
+    }
     setSaving(true)
     setError(null)
     try {
       await onSave({
         title: title.trim(),
         date,
+        endDate: endDate !== date ? endDate : undefined,
         time: time || undefined,
         category,
         description: description.trim() || undefined,
+        isDday,
+        isPinned,
       })
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : '일정을 저장하지 못했습니다.')
@@ -111,28 +127,46 @@ export function EventDialog({ open, defaultDate, editing, onClose, onSave }: Eve
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="event-date" className="text-sm font-medium">날짜</label>
+              <label htmlFor="event-date" className="text-sm font-medium">시작일</label>
               <input
                 id="event-date"
                 type="date"
                 value={date}
-                onChange={(event) => setDate(event.target.value)}
+                onChange={(event) => {
+                  const nextDate = event.target.value
+                  setDate(nextDate)
+                  if (!endDate || endDate < nextDate) setEndDate(nextDate)
+                }}
                 required
                 disabled={saving}
                 className="rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="event-time" className="text-sm font-medium">시간 (선택)</label>
+              <label htmlFor="event-end-date" className="text-sm font-medium">종료일</label>
               <input
-                id="event-time"
-                type="time"
-                value={time}
-                onChange={(event) => setTime(event.target.value)}
+                id="event-end-date"
+                type="date"
+                value={endDate}
+                min={date}
+                onChange={(event) => setEndDate(event.target.value)}
+                required
                 disabled={saving}
                 className="rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
               />
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="event-time" className="text-sm font-medium">시간 (선택)</label>
+            <input
+              id="event-time"
+              type="time"
+              value={time}
+              onChange={(event) => setTime(event.target.value)}
+              disabled={saving}
+              className="rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -159,6 +193,35 @@ export function EventDialog({ open, defaultDate, editing, onClose, onSave }: Eve
                 )
               })}
             </div>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-background p-3">
+              <input
+                type="checkbox"
+                checked={isDday}
+                onChange={(event) => setIsDday(event.target.checked)}
+                disabled={saving}
+                className="mt-0.5 size-4 accent-primary"
+              />
+              <span>
+                <span className="block text-sm font-medium">D-day 표시</span>
+                <span className="block text-xs text-muted-foreground">중요 일정까지 남은 날짜를 보여줘요.</span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-background p-3">
+              <input
+                type="checkbox"
+                checked={isPinned}
+                onChange={(event) => setIsPinned(event.target.checked)}
+                disabled={saving}
+                className="mt-0.5 size-4 accent-primary"
+              />
+              <span>
+                <span className="block text-sm font-medium">중요 공지로 고정</span>
+                <span className="block text-xs text-muted-foreground">달력 위에 항상 표시해요.</span>
+              </span>
+            </label>
           </div>
 
           <div className="flex flex-col gap-1.5">

@@ -1,10 +1,10 @@
 'use client'
 
-import { Clock, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Clock, Flag, Pencil, Pin, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CategoryBadge } from '@/components/category-badge'
 import type { ClassEvent } from '@/lib/types'
-import { formatFullDate } from '@/lib/date-utils'
+import { formatDateRange } from '@/lib/date-utils'
 
 interface EventListProps {
   title: string
@@ -53,7 +53,19 @@ export function EventList({
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
                   <CategoryBadge category={event.category} />
-                  {showDate && <span className="text-xs font-medium text-muted-foreground">{formatFullDate(event.date)}</span>}
+                  {showDate && <span className="text-xs font-medium text-muted-foreground">{formatDateRange(event.date, event.endDate)}</span>}
+                  {event.isDday && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                      <Flag className="size-3" />
+                      D-day
+                    </span>
+                  )}
+                  {event.isPinned && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                      <Pin className="size-3" />
+                      중요
+                    </span>
+                  )}
                   {event.time && (
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                       <Clock className="size-3" />
