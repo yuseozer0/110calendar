@@ -32,10 +32,35 @@ function toDocData(draft: EventDraft): Record<string, unknown> {
 }
 
 export function useEvents() {
-  const { db, ready } = useFirebase()
+  const { auth, db, ready } = useFirebase()
   const [events, setEvents] = useState<ClassEvent[]>([])
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const sendScheduleNotification = useCallback(
+    async (scheduleId: string, action: 'created' | 'updated') => {
+      const currentUser = auth?.currentUser
+      if (!currentUser) return
+      try {
+        const idToken = await currentUser.getIdToken()
+        const response = await fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ scheduleId, action }),
+        })
+        if (!response.ok) {
+          const result = (await response.json()) as { error?: string }
+          console.warn('[push] notification skipped:', result.error ?? response.statusText)
+        }
+      } catch (notificationError) {
+        console.warn('[push] notification skipped:', notificationError)
+      }
+    },
+    [auth],
+  )
 
   // Realtime subscription to the schedules collection.
   useEffect(() => {
@@ -82,12 +107,13 @@ export function useEvents() {
   const addEvent = useCallback(
     async (draft: EventDraft) => {
       if (!db) throw new Error('Firebase가 설정되지 않았습니다.')
-      await addDoc(collection(db, COLLECTION), {
+      const added = await addDoc(collection(db, COLLECTION), {
         ...toDocData(draft),
         createdAt: serverTimestamp(),
       })
+      await sendScheduleNotification(added.id, 'created')
     },
-    [db],
+    [db, sendScheduleNotification],
   )
 
   const updateEvent = useCallback(
@@ -102,8 +128,9 @@ export function useEvents() {
         isDday: draft.isDday === true,
         isPinned: draft.isPinned === true,
       })
+      await sendScheduleNotification(id, 'updated')
     },
-    [db],
+    [db, sendScheduleNotification],
   )
 
   const deleteEvent = useCallback(
