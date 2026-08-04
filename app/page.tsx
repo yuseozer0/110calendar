@@ -37,7 +37,16 @@ function sortEvents(list: ClassEvent[]): ClassEvent[] {
 }
 
 export default function Page() {
-  const { events, loaded, error, addEvent, updateEvent, deleteEvent } = useEvents()
+  const {
+    events,
+    loaded,
+    error,
+    notificationStatus,
+    clearNotificationStatus,
+    addEvent,
+    updateEvent,
+    deleteEvent,
+  } = useEvents()
   const { isAdmin, authLoading, ready } = useFirebase()
 
   const todayKey = toDateKey(new Date())
@@ -235,6 +244,17 @@ export default function Page() {
         </div>
 
         <main className="flex-1 px-4 py-4">
+          {notificationStatus && (
+            <div
+              role="status"
+              className={notificationStatus.kind === 'success'
+                ? 'mb-4 flex items-center justify-between gap-3 rounded-xl bg-primary/10 px-4 py-3 text-sm text-primary'
+                : 'mb-4 flex items-center justify-between gap-3 rounded-xl bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200'}
+            >
+              <span>{notificationStatus.message}</span>
+              <button type="button" className="shrink-0 font-medium underline" onClick={clearNotificationStatus}>닫기</button>
+            </div>
+          )}
           {!ready ? (
             <p className="rounded-xl bg-destructive/10 p-4 text-center text-sm text-destructive">
               Firebase 환경변수가 설정되지 않았습니다.
