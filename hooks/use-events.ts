@@ -16,6 +16,11 @@ import { useFirebase } from '@/components/firebase-provider'
 
 const COLLECTION = 'schedules'
 
+export interface NotificationStatus {
+  kind: 'success' | 'warning'
+  message: string
+}
+
 /** Remove keys with undefined values (Firestore rejects undefined). */
 function toDocData(draft: EventDraft): Record<string, unknown> {
   const data: Record<string, unknown> = {
@@ -36,11 +41,16 @@ export function useEvents() {
   const [events, setEvents] = useState<ClassEvent[]>([])
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notificationStatus, setNotificationStatus] = useState<NotificationStatus | null>(null)
 
   const sendScheduleNotification = useCallback(
     async (scheduleId: string, action: 'created' | 'updated') => {
+      setNotificationStatus(null)
       const currentUser = auth?.currentUser
-      if (!currentUser) return
+      if (!currentUser) {
+        setNotificationStatus({ kind: 'warning', message: '일정은 저장됐지만 관리자 로그인이 풀려 알림을 보내지 못했습니다.' })
+        return
+      }
       try {
         const idToken = await currentUser.getIdToken()
         const response = await fetch('/api/notifications/send', {
@@ -51,12 +61,29 @@ export function useEvents() {
           },
           body: JSON.stringify({ scheduleId, action }),
         })
+        const result = (await response.json()) as { error?: string; successCount?: number; failureCount?: number }
         if (!response.ok) {
-          const result = (await response.json()) as { error?: string }
-          console.warn('[push] notification skipped:', result.error ?? response.statusText)
+          const message = result.error ?? response.statusText
+          console.warn('[push] notification skipped:', message)
+          setNotificationStatus({ kind: 'warning', message: `일정은 저장됐지만 알림 발송에 실패했습니다: ${message}` })
+          return
         }
+        const successCount = result.successCount ?? 0
+        const failureCount = result.failureCount ?? 0
+        setNotificationStatus(successCount > 0
+          ? {
+              kind: 'success',
+              message: failureCount > 0
+                ? `알림을 ${successCount}대에 보냈고 ${failureCount}대는 실패했습니다.`
+                : `알림을 ${successCount}대에 보냈습니다.`,
+            }
+          : { kind: 'warning', message: '일정은 저장됐지만 알림을 받을 기기가 아직 등록되지 않았습니다.' })
       } catch (notificationError) {
         console.warn('[push] notification skipped:', notificationError)
+        setNotificationStatus({
+          kind: 'warning',
+          message: `일정은 저장됐지만 알림 발송에 실패했습니다: ${notificationError instanceof Error ? notificationError.message : '알 수 없는 오류'}`,
+        })
       }
     },
     [auth],
@@ -141,5 +168,14 @@ export function useEvents() {
     [db],
   )
 
-  return { events, loaded, error, addEvent, updateEvent, deleteEvent }
+  return {
+    events,
+    loaded,
+    error,
+    notificationStatus,
+    clearNotificationStatus: () => setNotificationStatus(null),
+    addEvent,
+    updateEvent,
+    deleteEvent,
+  }
 }
