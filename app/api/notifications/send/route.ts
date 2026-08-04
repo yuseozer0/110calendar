@@ -1,6 +1,6 @@
 import { FieldPath } from 'firebase-admin/firestore'
 import { NextResponse } from 'next/server'
-import { getFirebaseAdmin } from '@/lib/firebase-admin'
+import { getFirebaseAdmin, verifyFirebaseIdToken } from '@/lib/firebase-admin'
 
 export const runtime = 'nodejs'
 
@@ -24,8 +24,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '일정 ID가 올바르지 않습니다.' }, { status: 400 })
     }
 
-    const { auth, db, messaging } = getFirebaseAdmin()
-    const decoded = await auth.verifyIdToken(idToken)
+    const { db, messaging } = getFirebaseAdmin()
+    const decoded = await verifyFirebaseIdToken(idToken)
     const adminSnap = await db.collection('admins').doc(decoded.uid).get()
     if (!adminSnap.exists) {
       return NextResponse.json({ error: '관리자 권한이 없습니다.' }, { status: 403 })
