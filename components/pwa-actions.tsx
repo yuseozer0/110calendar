@@ -69,6 +69,14 @@ export function PwaActions({ compact = false }: { compact?: boolean }) {
       unsubscribe = onMessage(getMessaging(app), (payload) => {
         const title = payload.notification?.title ?? '110 캘린더'
         setMessage(title)
+        void navigator.serviceWorker.ready.then((registration) =>
+          registration.showNotification(title, {
+            body: payload.notification?.body ?? '새로운 일정 소식이 있어요.',
+            icon: '/app-icon-192.png',
+            badge: '/app-icon-192.png',
+            tag: typeof payload.data?.scheduleId === 'string' ? `schedule-${payload.data.scheduleId}` : '110calendar-update',
+          }),
+        )
       })
     })
     return () => unsubscribe?.()
