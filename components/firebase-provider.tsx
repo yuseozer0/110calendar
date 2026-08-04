@@ -34,6 +34,7 @@ export interface FirebaseConfig {
 }
 
 interface FirebaseContextValue {
+  app: FirebaseApp | null
   db: Firestore | null
   auth: Auth | null
   /** Currently signed-in user, if any. */
@@ -113,6 +114,7 @@ export function FirebaseProvider({
   }, [services])
 
   const value: FirebaseContextValue = {
+    app: services.app,
     db: services.db,
     auth: services.auth,
     user,

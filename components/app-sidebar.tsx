@@ -7,6 +7,7 @@ import { SearchBar } from '@/components/search-bar'
 import { CategoryFilter } from '@/components/category-filter'
 import { CategoryLegend } from '@/components/category-legend'
 import { AdminAuthButton } from '@/components/admin-auth'
+import { PwaActions } from '@/components/pwa-actions'
 import type { CategoryId } from '@/lib/categories'
 
 interface AppSidebarProps {
@@ -48,6 +49,7 @@ export function AppSidebar({
 
       <div className="mt-auto flex flex-col gap-4">
         <CategoryLegend />
+        <PwaActions />
         <AdminAuthButton />
       </div>
     </aside>
