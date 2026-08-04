@@ -24,6 +24,7 @@ import { BottomNav, type MobileView } from '@/components/bottom-nav'
 import { EventDialog } from '@/components/event-dialog'
 import { EventHighlights } from '@/components/event-highlights'
 import { AdminAuthButton } from '@/components/admin-auth'
+import { PwaActions } from '@/components/pwa-actions'
 import { useFirebase } from '@/components/firebase-provider'
 
 function sortEvents(list: ClassEvent[]): ClassEvent[] {
@@ -216,7 +217,10 @@ export default function Page() {
         <header className="sticky top-0 z-30 border-b border-border bg-background/95 px-4 py-3 pt-safe backdrop-blur lg:hidden">
           <div className="flex items-center justify-between gap-3">
             <BrandHeader compact />
-            <AdminAuthButton compact />
+            <div className="flex items-center gap-1">
+              <PwaActions compact />
+              <AdminAuthButton compact />
+            </div>
           </div>
         </header>
 
