@@ -25,7 +25,8 @@ export function PwaActions({ compact = false }: { compact?: boolean }) {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [installed, setInstalled] = useState(false)
   const [isIos, setIsIos] = useState(false)
-  const [showIosHelp, setShowIosHelp] = useState(false)
+  const [isAndroid, setIsAndroid] = useState(false)
+  const [showInstallHelp, setShowInstallHelp] = useState(false)
   const [notificationSupported, setNotificationSupported] = useState(false)
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
   const [working, setWorking] = useState(false)
@@ -33,7 +34,10 @@ export function PwaActions({ compact = false }: { compact?: boolean }) {
 
   useEffect(() => {
     setInstalled(isInstalled())
-    setIsIos(/iPad|iPhone|iPod/.test(navigator.userAgent))
+    const iosDevice = /iPad|iPhone|iPod/.test(navigator.userAgent)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    setIsIos(iosDevice)
+    setIsAndroid(/Android/i.test(navigator.userAgent))
     setNotificationPermission('Notification' in window ? Notification.permission : 'denied')
     void isSupported().then(setNotificationSupported).catch(() => setNotificationSupported(false))
 
@@ -72,12 +76,8 @@ export function PwaActions({ compact = false }: { compact?: boolean }) {
 
   const handleInstall = async () => {
     setMessage(null)
-    if (isIos && !installPrompt) {
-      setShowIosHelp(true)
-      return
-    }
     if (!installPrompt) {
-      setMessage('브라우저 메뉴에서 “앱 설치” 또는 “홈 화면에 추가”를 선택해 주세요.')
+      setShowInstallHelp(true)
       return
     }
     await installPrompt.prompt()
@@ -149,7 +149,7 @@ export function PwaActions({ compact = false }: { compact?: boolean }) {
 
   const notificationReady = Boolean(app && notificationSupported && VAPID_KEY)
   const notificationsEnabled = notificationPermission === 'granted' && typeof window !== 'undefined' && Boolean(localStorage.getItem(TOKEN_STORAGE_KEY))
-  const canOfferInstall = !installed && (Boolean(installPrompt) || isIos)
+  const canOfferInstall = !installed
 
   return (
     <>
@@ -184,20 +184,30 @@ export function PwaActions({ compact = false }: { compact?: boolean }) {
         )}
       </div>
 
-      {showIosHelp && (
-        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-foreground/40 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label="아이폰 앱 설치 방법" onClick={() => setShowIosHelp(false)}>
+      {showInstallHelp && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-foreground/40 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label="앱 설치 방법" onClick={() => setShowInstallHelp(false)}>
           <div className="w-full max-w-md rounded-t-2xl bg-card p-5 pb-safe sm:rounded-2xl" onClick={(event) => event.stopPropagation()}>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-bold">아이폰에 앱 설치하기</h2>
-              <Button variant="ghost" size="icon" aria-label="닫기" onClick={() => setShowIosHelp(false)}>
+              <h2 className="text-lg font-bold">{isIos ? '아이폰에 앱 설치하기' : isAndroid ? '안드로이드에 앱 설치하기' : '홈 화면에 앱 추가하기'}</h2>
+              <Button variant="ghost" size="icon" aria-label="닫기" onClick={() => setShowInstallHelp(false)}>
                 <X className="size-4" />
               </Button>
             </div>
-            <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
-              <li>Safari 아래쪽의 공유 버튼을 누르세요.</li>
-              <li>메뉴에서 <strong className="text-foreground">홈 화면에 추가</strong>를 선택하세요.</li>
-              <li>추가한 110 캘린더 앱을 열고 <strong className="text-foreground">알림 받기</strong>를 누르세요.</li>
-            </ol>
+            {isIos ? (
+              <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
+                <li>이 페이지를 <strong className="text-foreground">Safari</strong>에서 여세요.</li>
+                <li>Safari 아래쪽의 <strong className="text-foreground">공유 버튼</strong>을 누르세요.</li>
+                <li>메뉴를 위로 올려 <strong className="text-foreground">홈 화면에 추가</strong>를 선택하세요.</li>
+                <li>추가한 110 캘린더 앱을 열고 <strong className="text-foreground">알림 받기</strong>를 누르세요.</li>
+              </ol>
+            ) : (
+              <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
+                <li>카카오톡·인스타그램 안이라면 메뉴에서 <strong className="text-foreground">Chrome으로 열기</strong>를 선택하세요.</li>
+                <li>Chrome 오른쪽 위 <strong className="text-foreground">⋮ 메뉴</strong>를 누르세요.</li>
+                <li><strong className="text-foreground">앱 설치</strong> 또는 <strong className="text-foreground">홈 화면에 추가</strong>를 선택하세요.</li>
+                <li>추가한 110 캘린더 앱을 열고 <strong className="text-foreground">알림 받기</strong>를 누르세요.</li>
+              </ol>
+            )}
           </div>
         </div>
       )}
