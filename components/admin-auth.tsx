@@ -93,14 +93,14 @@ function AdminLoginDialog({ open, onClose }: { open: boolean; onClose: () => voi
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-foreground/40 p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[60] flex min-h-0 items-end justify-center overflow-y-auto overscroll-contain bg-foreground/40 p-0 pt-safe sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label="관리자 로그인"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-t-2xl border border-border bg-card p-5 pb-safe sm:rounded-2xl"
+        className="max-h-[calc(100dvh-env(safe-area-inset-top))] w-full max-w-md overflow-y-auto rounded-t-2xl border border-border bg-card p-5 pb-safe sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
