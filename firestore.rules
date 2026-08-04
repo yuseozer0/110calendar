@@ -7,6 +7,43 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    function isValidSchedule(data) {
+      return data.title is string
+        && data.date is string
+        && data.category is string
+        && (!('endDate' in data) || data.endDate == null || data.endDate is string)
+        && (!('time' in data) || data.time == null || data.time is string)
+        && (!('description' in data) || data.description == null || data.description is string)
+        && (!('imageUrl' in data) || data.imageUrl == null || (data.imageUrl is string && data.imageUrl.size() <= 700000))
+        && (!('isDday' in data) || data.isDday is bool)
+        && (!('isPinned' in data) || data.isPinned is bool);
+    }
+
+    match /schedules/{scheduleId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidSchedule(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
     match /schedules/{scheduleId} {
       allow read: if true;
       allow create: if isAdmin()
