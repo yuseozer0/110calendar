@@ -91,7 +91,7 @@ export function EventDialog({ open, defaultDate, editing, onClose, onSave }: Eve
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex min-h-0 items-end justify-center overflow-y-auto overscroll-contain bg-foreground/40 p-0 pt-safe sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label={editing ? '일정 수정' : '일정 등록'}
@@ -100,7 +100,7 @@ export function EventDialog({ open, defaultDate, editing, onClose, onSave }: Eve
       }}
     >
       <div
-        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-border bg-card p-5 pb-safe sm:rounded-2xl"
+        className="max-h-[calc(100dvh-env(safe-area-inset-top))] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-border bg-card p-5 pb-safe sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
