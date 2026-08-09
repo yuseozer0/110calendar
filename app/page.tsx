@@ -26,6 +26,7 @@ import { EventHighlights } from '@/components/event-highlights'
 import { AdminAuthButton } from '@/components/admin-auth'
 import { PwaActions } from '@/components/pwa-actions'
 import { useFirebase } from '@/components/firebase-provider'
+import { MealCard } from '@/components/meal-card'
 
 function sortEvents(list: ClassEvent[]): ClassEvent[] {
   return [...list].sort((a, b) => {
@@ -274,6 +275,10 @@ export default function Page() {
                 canManage={isAdmin}
                 onEdit={openEdit}
               />
+
+              <div className="mb-4">
+                <MealCard />
+              </div>
 
               {/* Phone: single column, tab-driven */}
               <div className="flex flex-col gap-4 md:hidden">
