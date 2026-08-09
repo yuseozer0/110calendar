@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { formatMealText, parseNutrition, type MealInfo } from '@/lib/meal'
+import { parseMealItems, parseNutrition, type MealInfo } from '@/lib/meal'
 
 export const runtime = 'nodejs'
 
@@ -14,7 +14,9 @@ export async function GET(request: Request) {
 
   const apiKey = process.env.NEIS_API_KEY
   const educationCode = process.env.NEIS_ATPT_OFCDC_SC_CODE ?? 'B10'
-  const schoolCode = process.env.NEIS_SD_SCHUL_CODE
+  // 110 Calendar's school: 서문여자고등학교 (서울, NEIS standard code 7010183).
+  // Keep it configurable so the project can be reused without changing code.
+  const schoolCode = process.env.NEIS_SD_SCHUL_CODE ?? '7010183'
   if (!apiKey || !schoolCode) {
     return NextResponse.json({ error: '급식 API 환경변수가 아직 설정되지 않았습니다.' }, { status: 503 })
   }
@@ -34,11 +36,10 @@ export async function GET(request: Request) {
     const payload = (await response.json()) as { mealServiceDietInfo?: [{ row?: Array<Record<string, string>> }, { row?: Array<Record<string, string>> }] }
     const row = payload.mealServiceDietInfo?.find((section) => section.row?.length)?.row?.[0]
     if (!row) return NextResponse.json({ meal: null satisfies MealInfo | null }, { headers: { 'Cache-Control': 's-maxage=900, stale-while-revalidate=3600' } })
-    const names = formatMealText(row.DDISH_NM ?? '')
     const meal: MealInfo = {
       date: row.MLSV_YMD ?? date,
       schoolName: row.SCHUL_NM,
-      items: names.map((name) => ({ name, allergies: (row.DDISH_NM?.match(/\(([0-9.\-]+)\)/)?.[1] ?? '').split('.').filter(Boolean) })),
+      items: parseMealItems(row.DDISH_NM ?? ''),
       calories: row.CAL_INFO,
       nutrition: parseNutrition(row.NTR_INFO),
       origin: row.ORPLC_INFO,
