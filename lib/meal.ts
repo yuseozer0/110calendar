@@ -45,6 +45,16 @@ export function formatMealText(value: string) {
     .filter(Boolean)
 }
 
+export function parseMealItems(value: string): MealItem[] {
+  return value
+    .split(/<br\s*\/?\s*>|\n/i)
+    .map((raw) => {
+      const allergies = raw.match(/\(([0-9.\-]+)\)/)?.[1]?.split('.').filter(Boolean) ?? []
+      return { name: raw.replace(/\s*\([0-9.\-]+\)\s*$/, '').trim(), allergies }
+    })
+    .filter((item) => item.name)
+}
+
 export function parseNutrition(value?: string) {
   if (!value) return undefined
   const result: Record<string, string> = {}
