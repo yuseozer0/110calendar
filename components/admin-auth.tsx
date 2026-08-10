@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { LogIn, LogOut, ShieldCheck, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useFirebase } from '@/components/firebase-provider'
@@ -91,16 +92,16 @@ function AdminLoginDialog({ open, onClose }: { open: boolean; onClose: () => voi
     }
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[60] flex min-h-0 items-end justify-center overflow-y-auto overscroll-contain bg-foreground/40 p-0 pt-safe sm:items-center sm:p-4"
+      className="fixed inset-0 z-[60] overflow-y-auto overscroll-contain bg-background sm:flex sm:items-center sm:justify-center sm:bg-foreground/40 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label="관리자 로그인"
       onClick={onClose}
     >
       <div
-        className="max-h-[calc(100dvh-env(safe-area-inset-top))] w-full max-w-md overflow-y-auto rounded-t-2xl border border-border bg-card p-5 pb-safe sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl"
+        className="mx-auto min-h-dvh w-full max-w-md overflow-y-auto bg-card p-5 pt-safe pb-safe sm:min-h-0 sm:max-h-[calc(100dvh_-_2rem)] sm:rounded-2xl sm:border sm:border-border"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -150,6 +151,7 @@ function AdminLoginDialog({ open, onClose }: { open: boolean; onClose: () => voi
           </Button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
