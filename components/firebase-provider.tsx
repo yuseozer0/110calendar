@@ -13,8 +13,11 @@ import {
   type Auth,
   type User,
   GoogleAuthProvider,
+  browserLocalPersistence,
   getAuth,
+  getRedirectResult,
   onAuthStateChanged,
+  setPersistence,
   signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
@@ -68,7 +71,13 @@ export function FirebaseProvider({
 
   const services = useMemo(() => {
     if (!configured) return { app: null as FirebaseApp | null, auth: null as Auth | null, db: null as Firestore | null }
-    const app = getApps().length ? getApps()[0] : initializeApp(config)
+    // Keep Firebase's redirect helper on the same origin as the installed app.
+    // Safari blocks the cross-origin storage used by the default firebaseapp.com
+    // helper, which otherwise loses the completed Google login after returning.
+    const runtimeConfig = typeof window !== 'undefined' && window.location.hostname === '110calendar.vercel.app'
+      ? { ...config, authDomain: window.location.host }
+      : config
+    const app = getApps().length ? getApps()[0] : initializeApp(runtimeConfig)
     return { app, auth: getAuth(app), db: getFirestore(app) }
   }, [config, configured])
 
@@ -101,6 +110,17 @@ export function FirebaseProvider({
     return () => unsub()
   }, [services])
 
+  useEffect(() => {
+    const auth = services.auth
+    if (!auth) return
+
+    // Finish redirect-based sign-in after Google sends the user back to the app.
+    // onAuthStateChanged updates the shared user state once this resolves.
+    void setPersistence(auth, browserLocalPersistence)
+      .then(() => getRedirectResult(auth))
+      .catch((error) => console.warn('[auth] redirect result failed:', error))
+  }, [services.auth])
+
   const signIn = useCallback(
     async (email: string, password: string) => {
       if (!services.auth || !services.db) throw new Error('Firebase가 설정되지 않았습니다.')
@@ -116,6 +136,7 @@ export function FirebaseProvider({
 
   const signInWithGoogle = useCallback(async () => {
     if (!services.auth) throw new Error('Firebase가 설정되지 않았습니다.')
+    await setPersistence(services.auth, browserLocalPersistence)
     const provider = new GoogleAuthProvider()
     provider.setCustomParameters({ prompt: 'select_account' })
 
