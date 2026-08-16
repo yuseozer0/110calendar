@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { LogIn, LogOut, ShieldCheck, UserRound, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useFirebase } from '@/components/firebase-provider'
@@ -110,7 +111,7 @@ function AccountDialog({ open, onClose }: { open: boolean; onClose: () => void }
     }
   }
 
-  return (
+  return createPortal(
     <div
       className="viewport-dialog fixed inset-0 z-[60] flex min-h-0 justify-center overflow-y-auto overscroll-contain bg-foreground/40"
       role="dialog"
@@ -215,6 +216,7 @@ function AccountDialog({ open, onClose }: { open: boolean; onClose: () => void }
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
