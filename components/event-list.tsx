@@ -1,6 +1,6 @@
 'use client'
 
-import { Clock, Flag, Pencil, Pin, Plus, Trash2 } from 'lucide-react'
+import { Clock, Flag, Lock, Pencil, Pin, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CategoryBadge } from '@/components/category-badge'
 import type { ClassEvent } from '@/lib/types'
@@ -12,10 +12,11 @@ interface EventListProps {
   events: ClassEvent[]
   emptyMessage: string
   showDate?: boolean
-  canManage?: boolean
+  canAdd?: boolean
+  canManageEvent?: (event: ClassEvent) => boolean
   onAdd?: () => void
   onEdit?: (event: ClassEvent) => void
-  onDelete?: (id: string) => void
+  onDelete?: (event: ClassEvent) => void
 }
 
 export function EventList({
@@ -24,7 +25,8 @@ export function EventList({
   events,
   emptyMessage,
   showDate = false,
-  canManage = false,
+  canAdd = false,
+  canManageEvent,
   onAdd,
   onEdit,
   onDelete,
@@ -36,7 +38,7 @@ export function EventList({
           <h2 className="text-base font-bold text-foreground">{title}</h2>
           {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
         </div>
-        {canManage && onAdd && (
+        {canAdd && onAdd && (
           <Button size="sm" onClick={onAdd}>
             <Plus className="size-3.5" />
             일정 추가
@@ -48,11 +50,19 @@ export function EventList({
         <p className="rounded-xl bg-muted/60 px-4 py-8 text-center text-sm text-muted-foreground">{emptyMessage}</p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {events.map((event) => (
-            <li key={event.id} className="flex items-start gap-3 rounded-xl border border-border bg-background p-3">
+          {events.map((event) => {
+            const canManage = canManageEvent?.(event) === true
+            return (
+            <li key={`${event.visibility}:${event.id}`} className="flex items-start gap-3 rounded-xl border border-border bg-background p-3">
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
                   <CategoryBadge category={event.category} />
+                  {event.visibility === 'private' && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                      <Lock className="size-3" />
+                      개인
+                    </span>
+                  )}
                   {showDate && <span className="text-xs font-medium text-muted-foreground">{formatDateRange(event.date, event.endDate)}</span>}
                   {event.isDday && (
                     <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
@@ -93,7 +103,7 @@ export function EventList({
                     size="icon"
                     aria-label="일정 삭제"
                     onClick={() => {
-                      if (window.confirm('이 일정을 삭제할까요?')) onDelete(event.id)
+                      if (window.confirm('이 일정을 삭제할까요?')) onDelete(event)
                     }}
                   >
                     <Trash2 className="size-4" />
@@ -101,7 +111,8 @@ export function EventList({
                 </div>
               )}
             </li>
-          ))}
+            )
+          })}
         </ul>
       )}
     </section>

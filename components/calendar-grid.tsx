@@ -121,9 +121,9 @@ export function CalendarGrid({
               <span className="flex flex-wrap items-center justify-center gap-0.5">
                 {dayEvents.slice(0, 4).map((event) => (
                   <span
-                    key={event.id}
+                    key={`${event.visibility}:${event.id}`}
                     aria-hidden="true"
-                    className="size-1.5 rounded-full"
+                    className={cn('size-1.5 rounded-full', event.visibility === 'private' && 'ring-1 ring-foreground/70 ring-offset-1 ring-offset-card')}
                     style={{ backgroundColor: getCategory(event.category).color }}
                   />
                 ))}

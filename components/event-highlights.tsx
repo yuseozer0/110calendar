@@ -1,6 +1,6 @@
 'use client'
 
-import { Flag, Pencil, Pin } from 'lucide-react'
+import { Flag, Lock, Pencil, Pin } from 'lucide-react'
 import { CategoryBadge } from '@/components/category-badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,7 +15,7 @@ interface EventHighlightsProps {
   ddayEvents: ClassEvent[]
   pinnedEvents: ClassEvent[]
   todayKey: string
-  canManage?: boolean
+  canManageEvent?: (event: ClassEvent) => boolean
   onEdit?: (event: ClassEvent) => void
 }
 
@@ -32,7 +32,7 @@ export function EventHighlights({
   ddayEvents,
   pinnedEvents,
   todayKey,
-  canManage = false,
+  canManageEvent,
   onEdit,
 }: EventHighlightsProps) {
   if (ddayEvents.length === 0 && pinnedEvents.length === 0) return null
@@ -47,15 +47,18 @@ export function EventHighlights({
           </header>
           <ul className="flex flex-col gap-2">
             {ddayEvents.map((event) => (
-              <li key={event.id} className="flex items-center gap-3 rounded-xl bg-primary/8 p-3">
+              <li key={`${event.visibility}:${event.id}`} className="flex items-center gap-3 rounded-xl bg-primary/8 p-3">
                 <span className="min-w-16 shrink-0 text-center text-sm font-bold text-primary">
                   {getDdayLabel(event, todayKey)}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-foreground">{event.title}</p>
+                  <p className="flex items-center gap-1 truncate font-medium text-foreground">
+                    {event.visibility === 'private' && <Lock className="size-3.5 shrink-0 text-primary" aria-label="개인 일정" />}
+                    <span className="truncate">{event.title}</span>
+                  </p>
                   <p className="text-xs text-muted-foreground">{formatDateRange(event.date, event.endDate)}</p>
                 </div>
-                {canManage && onEdit && (
+                {canManageEvent?.(event) && onEdit && (
                   <Button variant="ghost" size="icon" aria-label="D-day 일정 수정" onClick={() => onEdit(event)}>
                     <Pencil className="size-4" />
                   </Button>
@@ -74,10 +77,16 @@ export function EventHighlights({
           </header>
           <ul className="flex flex-col gap-2">
             {pinnedEvents.map((event) => (
-              <li key={event.id} className="flex items-start gap-3 rounded-xl border border-primary/15 bg-background p-3">
+              <li key={`${event.visibility}:${event.id}`} className="flex items-start gap-3 rounded-xl border border-primary/15 bg-background p-3">
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex flex-wrap items-center gap-2">
                     <CategoryBadge category={event.category} />
+                    {event.visibility === 'private' && (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                        <Lock className="size-3" />
+                        개인
+                      </span>
+                    )}
                     <span className="text-xs text-muted-foreground">{formatDateRange(event.date, event.endDate)}</span>
                   </div>
                   <p className="font-medium text-foreground">{event.title}</p>
@@ -90,7 +99,7 @@ export function EventHighlights({
                     />
                   )}
                 </div>
-                {canManage && onEdit && (
+                {canManageEvent?.(event) && onEdit && (
                   <Button variant="ghost" size="icon" aria-label="중요 공지 수정" onClick={() => onEdit(event)}>
                     <Pencil className="size-4" />
                   </Button>

@@ -1,21 +1,22 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ImagePlus, X } from 'lucide-react'
+import { ImagePlus, Lock, Users, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CATEGORIES, type CategoryId } from '@/lib/categories'
-import type { ClassEvent, EventDraft } from '@/lib/types'
+import type { ClassEvent, EventDraft, EventVisibility } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 interface EventDialogProps {
   open: boolean
   defaultDate: string
   editing: ClassEvent | null
+  canCreateClass: boolean
   onClose: () => void
   onSave: (draft: EventDraft) => Promise<void>
 }
 
-export function EventDialog({ open, defaultDate, editing, onClose, onSave }: EventDialogProps) {
+export function EventDialog({ open, defaultDate, editing, canCreateClass, onClose, onSave }: EventDialogProps) {
   const [title, setTitle] = useState('')
   const [date, setDate] = useState(defaultDate)
   const [endDate, setEndDate] = useState(defaultDate)
@@ -24,6 +25,7 @@ export function EventDialog({ open, defaultDate, editing, onClose, onSave }: Eve
   const [description, setDescription] = useState('')
   const [isDday, setIsDday] = useState(false)
   const [isPinned, setIsPinned] = useState(false)
+  const [visibility, setVisibility] = useState<EventVisibility>('private')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState('')
   const [removeImage, setRemoveImage] = useState(false)
@@ -42,6 +44,7 @@ export function EventDialog({ open, defaultDate, editing, onClose, onSave }: Eve
       setDescription(editing.description ?? '')
       setIsDday(editing.isDday === true)
       setIsPinned(editing.isPinned === true)
+      setVisibility(editing.visibility)
       setImageFile(null)
       setImagePreview(editing.imageUrl ?? '')
       setRemoveImage(false)
@@ -54,11 +57,12 @@ export function EventDialog({ open, defaultDate, editing, onClose, onSave }: Eve
       setDescription('')
       setIsDday(false)
       setIsPinned(false)
+      setVisibility(canCreateClass ? 'class' : 'private')
       setImageFile(null)
       setImagePreview('')
       setRemoveImage(false)
     }
-  }, [open, editing, defaultDate])
+  }, [open, editing, defaultDate, canCreateClass])
 
   useEffect(() => {
     return () => {
@@ -99,6 +103,7 @@ export function EventDialog({ open, defaultDate, editing, onClose, onSave }: Eve
         removeImage,
         isDday,
         isPinned,
+        visibility,
       })
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : '일정을 저장하지 못했습니다.')
@@ -129,6 +134,47 @@ export function EventDialog({ open, defaultDate, editing, onClose, onSave }: Eve
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium">공개 범위</span>
+            <div className={cn('grid gap-2', canCreateClass && 'grid-cols-2')}>
+              <button
+                type="button"
+                onClick={() => setVisibility('private')}
+                disabled={saving || Boolean(editing)}
+                aria-pressed={visibility === 'private'}
+                className={cn(
+                  'flex items-start gap-3 rounded-xl border p-3 text-left transition-colors disabled:cursor-default',
+                  visibility === 'private' ? 'border-primary bg-primary/8 text-foreground' : 'border-border bg-background text-muted-foreground',
+                )}
+              >
+                <Lock className="mt-0.5 size-4 shrink-0" />
+                <span>
+                  <span className="block text-sm font-medium">나만 보기</span>
+                  <span className="block text-xs text-muted-foreground">내 계정에서만 보여요.</span>
+                </span>
+              </button>
+              {canCreateClass && (
+                <button
+                  type="button"
+                  onClick={() => setVisibility('class')}
+                  disabled={saving || Boolean(editing)}
+                  aria-pressed={visibility === 'class'}
+                  className={cn(
+                    'flex items-start gap-3 rounded-xl border p-3 text-left transition-colors disabled:cursor-default',
+                    visibility === 'class' ? 'border-primary bg-primary/8 text-foreground' : 'border-border bg-background text-muted-foreground',
+                  )}
+                >
+                  <Users className="mt-0.5 size-4 shrink-0" />
+                  <span>
+                    <span className="block text-sm font-medium">학급에 공개</span>
+                    <span className="block text-xs text-muted-foreground">모든 친구에게 보여요.</span>
+                  </span>
+                </button>
+              )}
+            </div>
+            {editing && <p className="text-xs text-muted-foreground">수정 중에는 공개 범위를 변경할 수 없어요.</p>}
+          </div>
+
           <div className="flex flex-col gap-1.5">
             <label htmlFor="event-title" className="text-sm font-medium">제목</label>
             <input

@@ -8,18 +8,18 @@ export type MobileView = 'calendar' | 'list'
 interface BottomNavProps {
   view: MobileView
   onViewChange: (view: MobileView) => void
-  canManage: boolean
+  canAdd: boolean
   onAdd: () => void
 }
 
-export function BottomNav({ view, onViewChange, canManage, onAdd }: BottomNavProps) {
+export function BottomNav({ view, onViewChange, canAdd, onAdd }: BottomNavProps) {
   return (
     <nav aria-label="하단 내비게이션" className="sticky bottom-0 z-40 flex items-center justify-around border-t border-border bg-card/95 px-2 pt-2 pb-safe backdrop-blur md:hidden">
       <NavButton active={view === 'calendar'} label="캘린더" onClick={() => onViewChange('calendar')}>
         <CalendarDays className="size-5" />
       </NavButton>
 
-      {canManage && (
+      {canAdd && (
         <button
           type="button"
           onClick={onAdd}

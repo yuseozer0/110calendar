@@ -12,9 +12,12 @@ import { type FirebaseApp, getApps, initializeApp } from 'firebase/app'
 import {
   type Auth,
   type User,
+  GoogleAuthProvider,
   getAuth,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  signInWithPopup,
+  signInWithRedirect,
   signOut as fbSignOut,
 } from 'firebase/auth'
 import {
@@ -45,6 +48,9 @@ interface FirebaseContextValue {
   authLoading: boolean
   /** True when the Firebase config was provided and the app initialized. */
   ready: boolean
+  /** Google login for personal schedules. */
+  signInWithGoogle: () => Promise<void>
+  /** Email/password login reserved for class administrators. */
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
 }
@@ -108,6 +114,36 @@ export function FirebaseProvider({
     [services],
   )
 
+  const signInWithGoogle = useCallback(async () => {
+    if (!services.auth) throw new Error('Firebase가 설정되지 않았습니다.')
+    const provider = new GoogleAuthProvider()
+    provider.setCustomParameters({ prompt: 'select_account' })
+
+    const navigatorWithStandalone = navigator as Navigator & { standalone?: boolean }
+    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || navigatorWithStandalone.standalone === true
+
+    if (isIos && isStandalone) {
+      await signInWithRedirect(services.auth, provider)
+      return
+    }
+
+    try {
+      await signInWithPopup(services.auth, provider)
+    } catch (error) {
+      const code = typeof error === 'object' && error && 'code' in error
+        ? String((error as { code?: unknown }).code)
+        : ''
+      if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+        await signInWithRedirect(services.auth, provider)
+        return
+      }
+      throw error
+    }
+  }, [services])
+
   const signOut = useCallback(async () => {
     if (!services.auth) return
     await fbSignOut(services.auth)
@@ -121,6 +157,7 @@ export function FirebaseProvider({
     isAdmin,
     authLoading,
     ready: configured,
+    signInWithGoogle,
     signIn,
     signOut,
   }
