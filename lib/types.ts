@@ -1,5 +1,7 @@
 import type { CategoryId } from './categories'
 
+export type EventVisibility = 'class' | 'private'
+
 export interface ClassEvent {
   id: string
   title: string
@@ -17,10 +19,14 @@ export interface ClassEvent {
   isDday?: boolean
   /** Pin this event as an important notice. */
   isPinned?: boolean
+  /** Class schedules are public; private schedules are visible only to their owner. */
+  visibility: EventVisibility
+  /** Firebase Auth UID for private schedules. */
+  ownerId?: string
   createdAt: number
 }
 
-export type EventDraft = Omit<ClassEvent, 'id' | 'createdAt'> & {
+export type EventDraft = Omit<ClassEvent, 'id' | 'createdAt' | 'ownerId'> & {
   imageFile?: File
   removeImage?: boolean
 }
