@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import {
+  type DocumentData,
+  type QueryDocumentSnapshot,
   addDoc,
   collection,
   deleteDoc,
@@ -10,12 +12,13 @@ import {
   serverTimestamp,
   updateDoc,
 } from 'firebase/firestore'
-import type { ClassEvent, EventDraft } from '@/lib/types'
+import type { ClassEvent, EventDraft, EventVisibility } from '@/lib/types'
 import type { CategoryId } from '@/lib/categories'
 import { compressScheduleImage } from '@/lib/image-utils'
 import { useFirebase } from '@/components/firebase-provider'
 
-const COLLECTION = 'schedules'
+const CLASS_COLLECTION = 'schedules'
+const PERSONAL_COLLECTION = 'personalSchedules'
 
 export interface NotificationStatus {
   kind: 'success' | 'warning'
@@ -38,10 +41,38 @@ function toDocData(draft: EventDraft): Record<string, unknown> {
   return data
 }
 
+function fromDoc(
+  snapshot: QueryDocumentSnapshot<DocumentData>,
+  visibility: EventVisibility,
+  ownerId?: string,
+): ClassEvent {
+  const data = snapshot.data() as Record<string, unknown>
+  return {
+    id: snapshot.id,
+    title: (data.title as string) ?? '',
+    date: (data.date as string) ?? '',
+    endDate: typeof data.endDate === 'string' ? data.endDate : undefined,
+    time: (data.time as string) || undefined,
+    category: (data.category as CategoryId) ?? 'etc',
+    description: (data.description as string) || undefined,
+    imageUrl: typeof data.imageUrl === 'string' ? data.imageUrl : undefined,
+    isDday: data.isDday === true,
+    isPinned: data.isPinned === true,
+    visibility,
+    ownerId,
+    createdAt:
+      typeof data.createdAt === 'number'
+        ? (data.createdAt as number)
+        : (data.createdAt as { toMillis?: () => number } | undefined)?.toMillis?.() ?? 0,
+  }
+}
+
 export function useEvents() {
-  const { auth, db, ready } = useFirebase()
-  const [events, setEvents] = useState<ClassEvent[]>([])
-  const [loaded, setLoaded] = useState(false)
+  const { auth, db, ready, user, isAdmin } = useFirebase()
+  const [classEvents, setClassEvents] = useState<ClassEvent[]>([])
+  const [privateEvents, setPrivateEvents] = useState<ClassEvent[]>([])
+  const [classLoaded, setClassLoaded] = useState(false)
+  const [privateLoaded, setPrivateLoaded] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [notificationStatus, setNotificationStatus] = useState<NotificationStatus | null>(null)
 
@@ -93,96 +124,131 @@ export function useEvents() {
     [auth],
   )
 
-  // Realtime subscription to the schedules collection.
   useEffect(() => {
     if (!db) {
-      // No Firebase configured — nothing to load.
-      if (!ready) setLoaded(true)
+      if (!ready) setClassLoaded(true)
       return
     }
-    const unsub = onSnapshot(
-      collection(db, COLLECTION),
+    const unsubscribe = onSnapshot(
+      collection(db, CLASS_COLLECTION),
       (snapshot) => {
-        const next: ClassEvent[] = snapshot.docs.map((d) => {
-          const data = d.data() as Record<string, unknown>
-          return {
-            id: d.id,
-            title: (data.title as string) ?? '',
-            date: (data.date as string) ?? '',
-            endDate: typeof data.endDate === 'string' ? data.endDate : undefined,
-            time: (data.time as string) || undefined,
-            category: (data.category as CategoryId) ?? 'etc',
-            description: (data.description as string) || undefined,
-            imageUrl: typeof data.imageUrl === 'string' ? data.imageUrl : undefined,
-            isDday: data.isDday === true,
-            isPinned: data.isPinned === true,
-            createdAt:
-              typeof data.createdAt === 'number'
-                ? (data.createdAt as number)
-                : (data.createdAt as { toMillis?: () => number } | undefined)
-                    ?.toMillis?.() ?? 0,
-          }
-        })
-        setEvents(next)
-        setLoaded(true)
+        setClassEvents(snapshot.docs.map((item) => fromDoc(item, 'class')))
+        setClassLoaded(true)
         setError(null)
       },
-      (err) => {
-        console.log('[v0] schedules subscription error:', err)
-        setError('일정을 불러오지 못했습니다.')
-        setLoaded(true)
+      (snapshotError) => {
+        console.log('[v0] schedules subscription error:', snapshotError)
+        setError('학급 일정을 불러오지 못했습니다.')
+        setClassLoaded(true)
       },
     )
-    return () => unsub()
+    return () => unsubscribe()
   }, [db, ready])
+
+  useEffect(() => {
+    if (!db || !user) {
+      setPrivateEvents([])
+      setPrivateLoaded(true)
+      return
+    }
+    setPrivateLoaded(false)
+    const unsubscribe = onSnapshot(
+      collection(db, 'users', user.uid, PERSONAL_COLLECTION),
+      (snapshot) => {
+        setPrivateEvents(snapshot.docs.map((item) => fromDoc(item, 'private', user.uid)))
+        setPrivateLoaded(true)
+        setError(null)
+      },
+      (snapshotError) => {
+        console.log('[private schedules] subscription error:', snapshotError)
+        setError('개인 일정을 불러오지 못했습니다. 보안 규칙을 확인해 주세요.')
+        setPrivateLoaded(true)
+      },
+    )
+    return () => unsubscribe()
+  }, [db, user])
 
   const addEvent = useCallback(
     async (draft: EventDraft) => {
       if (!db) throw new Error('Firebase가 설정되지 않았습니다.')
       const imageUrl = draft.imageFile ? await compressScheduleImage(draft.imageFile) : draft.imageUrl
-      const added = await addDoc(collection(db, COLLECTION), {
+      const data = {
         ...toDocData({ ...draft, imageUrl }),
         createdAt: serverTimestamp(),
-      })
+      }
+
+      if (draft.visibility === 'private') {
+        const currentUser = auth?.currentUser
+        if (!currentUser) throw new Error('개인 일정은 Google 로그인 후 저장할 수 있습니다.')
+        await addDoc(collection(db, 'users', currentUser.uid, PERSONAL_COLLECTION), {
+          ...data,
+          ownerId: currentUser.uid,
+        })
+        setNotificationStatus({ kind: 'success', message: '나만 볼 수 있는 개인 일정으로 저장했습니다.' })
+        return
+      }
+
+      if (!isAdmin) throw new Error('학급 공개 일정은 관리자만 저장할 수 있습니다.')
+      const added = await addDoc(collection(db, CLASS_COLLECTION), data)
       await sendScheduleNotification(added.id, 'created')
     },
-    [db, sendScheduleNotification],
+    [auth, db, isAdmin, sendScheduleNotification],
   )
 
   const updateEvent = useCallback(
-    async (id: string, draft: EventDraft) => {
+    async (event: ClassEvent, draft: EventDraft) => {
       if (!db) throw new Error('Firebase가 설정되지 않았습니다.')
       const imageUrl = draft.imageFile
         ? await compressScheduleImage(draft.imageFile)
         : draft.removeImage
           ? null
           : draft.imageUrl ?? null
-      await updateDoc(doc(db, COLLECTION, id), {
+      const updates = {
         ...toDocData(draft),
-        // Clear optional fields when removed.
         time: draft.time ?? null,
         description: draft.description ?? null,
         imageUrl,
         endDate: draft.endDate && draft.endDate !== draft.date ? draft.endDate : null,
         isDday: draft.isDday === true,
         isPinned: draft.isPinned === true,
-      })
-      await sendScheduleNotification(id, 'updated')
+      }
+
+      if (event.visibility === 'private') {
+        const currentUser = auth?.currentUser
+        if (!currentUser || currentUser.uid !== event.ownerId) throw new Error('이 개인 일정을 수정할 권한이 없습니다.')
+        await updateDoc(doc(db, 'users', currentUser.uid, PERSONAL_COLLECTION, event.id), {
+          ...updates,
+          ownerId: currentUser.uid,
+        })
+        setNotificationStatus({ kind: 'success', message: '개인 일정을 수정했습니다.' })
+        return
+      }
+
+      if (!isAdmin) throw new Error('학급 공개 일정은 관리자만 수정할 수 있습니다.')
+      await updateDoc(doc(db, CLASS_COLLECTION, event.id), updates)
+      await sendScheduleNotification(event.id, 'updated')
     },
-    [db, sendScheduleNotification],
+    [auth, db, isAdmin, sendScheduleNotification],
   )
 
   const deleteEvent = useCallback(
-    async (id: string) => {
+    async (event: ClassEvent) => {
       if (!db) throw new Error('Firebase가 설정되지 않았습니다.')
-      await deleteDoc(doc(db, COLLECTION, id))
+      if (event.visibility === 'private') {
+        const currentUser = auth?.currentUser
+        if (!currentUser || currentUser.uid !== event.ownerId) throw new Error('이 개인 일정을 삭제할 권한이 없습니다.')
+        await deleteDoc(doc(db, 'users', currentUser.uid, PERSONAL_COLLECTION, event.id))
+        return
+      }
+      if (!isAdmin) throw new Error('학급 공개 일정은 관리자만 삭제할 수 있습니다.')
+      await deleteDoc(doc(db, CLASS_COLLECTION, event.id))
     },
-    [db],
+    [auth, db, isAdmin],
   )
 
   return {
-    events,
-    loaded,
+    events: [...classEvents, ...privateEvents],
+    loaded: classLoaded && privateLoaded,
     error,
     notificationStatus,
     clearNotificationStatus: () => setNotificationStatus(null),
