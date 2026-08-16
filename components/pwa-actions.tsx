@@ -225,8 +225,8 @@ export function PwaActions({ compact = false }: { compact?: boolean }) {
       </div>
 
       {showInstallHelp && (
-        <div className="fixed inset-0 z-[70] flex min-h-0 items-end justify-center overflow-y-auto overscroll-contain bg-foreground/40 pt-safe sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label="앱 설치 방법" onClick={() => setShowInstallHelp(false)}>
-          <div className="max-h-[calc(100dvh-env(safe-area-inset-top))] w-full max-w-md overflow-y-auto rounded-t-2xl bg-card p-5 pb-safe sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="viewport-dialog fixed inset-0 z-[70] flex min-h-0 justify-center overflow-y-auto overscroll-contain bg-foreground/40" role="dialog" aria-modal="true" aria-label="앱 설치 방법" onClick={() => setShowInstallHelp(false)}>
+          <div className="viewport-dialog-panel w-full max-w-md overflow-y-auto bg-card p-5" onClick={(event) => event.stopPropagation()}>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-lg font-bold">{isIos ? '아이폰에 앱 설치하기' : isAndroid ? '안드로이드에 앱 설치하기' : '홈 화면에 앱 추가하기'}</h2>
               <Button variant="ghost" size="icon" aria-label="닫기" onClick={() => setShowInstallHelp(false)}>

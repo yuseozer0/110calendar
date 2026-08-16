@@ -112,14 +112,14 @@ function AccountDialog({ open, onClose }: { open: boolean; onClose: () => void }
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex min-h-0 items-end justify-center overflow-y-auto overscroll-contain bg-foreground/40 p-0 pt-safe sm:items-center sm:p-4"
+      className="viewport-dialog fixed inset-0 z-[60] flex min-h-0 justify-center overflow-y-auto overscroll-contain bg-foreground/40"
       role="dialog"
       aria-modal="true"
       aria-label={user ? '내 계정' : '로그인'}
       onClick={onClose}
     >
       <div
-        className="max-h-[calc(100dvh-env(safe-area-inset-top))] w-full max-w-md overflow-y-auto rounded-t-2xl border border-border bg-card p-5 pb-safe sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl"
+        className="viewport-dialog-panel w-full max-w-md overflow-y-auto border border-border bg-card p-5"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-3">
@@ -143,7 +143,9 @@ function AccountDialog({ open, onClose }: { open: boolean; onClose: () => void }
                 </span>
                 <div className="min-w-0">
                   <p className="truncate font-medium">{user.displayName || (isAdmin ? '관리자' : '110 캘린더 사용자')}</p>
-                  <p className="truncate text-sm text-muted-foreground">{user.email}</p>
+                  <p className="truncate text-sm text-muted-foreground">
+                    {user.email || '이메일 정보 없음'}
+                  </p>
                 </div>
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
@@ -158,9 +160,9 @@ function AccountDialog({ open, onClose }: { open: boolean; onClose: () => void }
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            <Button onClick={() => void handleGoogleLogin()} disabled={submitting}>
+            <Button variant="outline" onClick={() => void handleGoogleLogin()} disabled={submitting}>
               <UserRound className="size-4" />
-              {submitting ? '로그인 중...' : 'Google로 개인 일정 시작'}
+              Google로 개인 일정 시작
             </Button>
             <p className="text-center text-xs text-muted-foreground">학급 일정과 급식은 로그인 없이 계속 볼 수 있어요.</p>
 

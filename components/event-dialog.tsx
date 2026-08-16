@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ImagePlus, Lock, Users, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { CATEGORIES, type CategoryId } from '@/lib/categories'
+import { CATEGORIES, getCategory, type Category, type CategoryId } from '@/lib/categories'
 import type { ClassEvent, EventDraft, EventVisibility } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -12,11 +12,13 @@ interface EventDialogProps {
   defaultDate: string
   editing: ClassEvent | null
   canCreateClass: boolean
+  defaultVisibility: EventVisibility
+  personalCategories: Category[]
   onClose: () => void
   onSave: (draft: EventDraft) => Promise<void>
 }
 
-export function EventDialog({ open, defaultDate, editing, canCreateClass, onClose, onSave }: EventDialogProps) {
+export function EventDialog({ open, defaultDate, editing, canCreateClass, defaultVisibility, personalCategories, onClose, onSave }: EventDialogProps) {
   const [title, setTitle] = useState('')
   const [date, setDate] = useState(defaultDate)
   const [endDate, setEndDate] = useState(defaultDate)
@@ -57,12 +59,12 @@ export function EventDialog({ open, defaultDate, editing, canCreateClass, onClos
       setDescription('')
       setIsDday(false)
       setIsPinned(false)
-      setVisibility(canCreateClass ? 'class' : 'private')
+      setVisibility(canCreateClass ? defaultVisibility : 'private')
       setImageFile(null)
       setImagePreview('')
       setRemoveImage(false)
     }
-  }, [open, editing, defaultDate, canCreateClass])
+  }, [open, editing, defaultDate, canCreateClass, defaultVisibility])
 
   useEffect(() => {
     return () => {
@@ -81,6 +83,16 @@ export function EventDialog({ open, defaultDate, editing, canCreateClass, onClos
 
   if (!open) return null
 
+  const orphanEditingCategory = editing?.category.startsWith('custom_')
+    ? getCategory(editing.category, editing.categoryLabel, editing.categoryColor)
+    : null
+  const personalOptions = orphanEditingCategory && !personalCategories.some((item) => item.id === orphanEditingCategory.id)
+    ? [...personalCategories, orphanEditingCategory]
+    : personalCategories
+  const availableCategories = visibility === 'private' ? [...CATEGORIES, ...personalOptions] : CATEGORIES
+  const selectedCategory = availableCategories.find((item) => item.id === category)
+    ?? getCategory(category, editing?.categoryLabel, editing?.categoryColor)
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!title.trim() || !date || !endDate || saving) return
@@ -97,6 +109,8 @@ export function EventDialog({ open, defaultDate, editing, canCreateClass, onClos
         endDate: endDate !== date ? endDate : undefined,
         time: time || undefined,
         category,
+        categoryLabel: category.startsWith('custom_') ? selectedCategory.label : undefined,
+        categoryColor: category.startsWith('custom_') ? selectedCategory.color : undefined,
         description: description.trim() || undefined,
         imageUrl: !removeImage && !imageFile ? editing?.imageUrl : undefined,
         imageFile: imageFile ?? undefined,
@@ -114,7 +128,7 @@ export function EventDialog({ open, defaultDate, editing, canCreateClass, onClos
 
   return (
     <div
-      className="fixed inset-0 z-50 flex min-h-0 items-end justify-center overflow-y-auto overscroll-contain bg-foreground/40 p-0 pt-safe sm:items-center sm:p-4"
+      className="viewport-dialog fixed inset-0 z-50 flex min-h-0 justify-center overflow-y-auto overscroll-contain bg-foreground/40"
       role="dialog"
       aria-modal="true"
       aria-label={editing ? '일정 수정' : '일정 등록'}
@@ -123,7 +137,7 @@ export function EventDialog({ open, defaultDate, editing, canCreateClass, onClos
       }}
     >
       <div
-        className="max-h-[calc(100dvh-env(safe-area-inset-top))] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-border bg-card p-5 pb-safe sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl"
+        className="viewport-dialog-panel w-full max-w-lg overflow-y-auto border border-border bg-card p-5"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -139,7 +153,7 @@ export function EventDialog({ open, defaultDate, editing, canCreateClass, onClos
             <div className={cn('grid gap-2', canCreateClass && 'grid-cols-2')}>
               <button
                 type="button"
-                onClick={() => setVisibility('private')}
+                  onClick={() => setVisibility('private')}
                 disabled={saving || Boolean(editing)}
                 aria-pressed={visibility === 'private'}
                 className={cn(
@@ -156,7 +170,10 @@ export function EventDialog({ open, defaultDate, editing, canCreateClass, onClos
               {canCreateClass && (
                 <button
                   type="button"
-                  onClick={() => setVisibility('class')}
+                  onClick={() => {
+                    setVisibility('class')
+                    if (category.startsWith('custom_')) setCategory('performance')
+                  }}
                   disabled={saving || Boolean(editing)}
                   aria-pressed={visibility === 'class'}
                   className={cn(
@@ -236,7 +253,7 @@ export function EventDialog({ open, defaultDate, editing, canCreateClass, onClos
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium">카테고리</span>
             <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map((item) => {
+              {availableCategories.map((item) => {
                 const isActive = category === item.id
                 return (
                   <button

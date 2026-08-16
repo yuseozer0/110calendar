@@ -9,7 +9,7 @@ import { CategoryLegend } from '@/components/category-legend'
 import { AdminAuthButton } from '@/components/admin-auth'
 import { PwaActions } from '@/components/pwa-actions'
 import { VisibilityFilter, type VisibilityFilterValue } from '@/components/visibility-filter'
-import type { CategoryId } from '@/lib/categories'
+import type { Category, CategoryId } from '@/lib/categories'
 
 interface AppSidebarProps {
   query: string
@@ -17,6 +17,12 @@ interface AppSidebarProps {
   activeCategories: CategoryId[]
   onToggleCategory: (id: CategoryId) => void
   onResetCategories: () => void
+  filterCategories: Category[]
+  personalCategories: Category[]
+  canManagePersonalCategories: boolean
+  onAddCategory: (label: string) => Promise<CategoryId>
+  onRenameCategory: (category: Category, label: string) => Promise<void>
+  onDeleteCategory: (category: Category) => Promise<void>
   loggedIn: boolean
   visibilityFilter: VisibilityFilterValue
   onVisibilityChange: (value: VisibilityFilterValue) => void
@@ -30,6 +36,12 @@ export function AppSidebar({
   activeCategories,
   onToggleCategory,
   onResetCategories,
+  filterCategories,
+  personalCategories,
+  canManagePersonalCategories,
+  onAddCategory,
+  onRenameCategory,
+  onDeleteCategory,
   loggedIn,
   visibilityFilter,
   onVisibilityChange,
@@ -58,7 +70,17 @@ export function AppSidebar({
 
       <div>
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">카테고리 필터</h2>
-        <CategoryFilter active={activeCategories} onToggle={onToggleCategory} onReset={onResetCategories} />
+        <CategoryFilter
+          active={activeCategories}
+          onToggle={onToggleCategory}
+          onReset={onResetCategories}
+          categories={filterCategories}
+          personalCategories={personalCategories}
+          canManagePersonal={canManagePersonalCategories}
+          onAddCategory={onAddCategory}
+          onRenameCategory={onRenameCategory}
+          onDeleteCategory={onDeleteCategory}
+        />
       </div>
 
       <div className="mt-auto flex flex-col gap-4">

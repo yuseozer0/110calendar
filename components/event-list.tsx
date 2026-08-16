@@ -56,7 +56,7 @@ export function EventList({
             <li key={`${event.visibility}:${event.id}`} className="flex items-start gap-3 rounded-xl border border-border bg-background p-3">
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <CategoryBadge category={event.category} />
+                  <CategoryBadge category={event.category} label={event.categoryLabel} color={event.categoryColor} />
                   {event.visibility === 'private' && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                       <Lock className="size-3" />

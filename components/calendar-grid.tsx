@@ -124,7 +124,7 @@ export function CalendarGrid({
                     key={`${event.visibility}:${event.id}`}
                     aria-hidden="true"
                     className={cn('size-1.5 rounded-full', event.visibility === 'private' && 'ring-1 ring-foreground/70 ring-offset-1 ring-offset-card')}
-                    style={{ backgroundColor: getCategory(event.category).color }}
+                    style={{ backgroundColor: getCategory(event.category, event.categoryLabel, event.categoryColor).color }}
                   />
                 ))}
                 {dayEvents.length > 4 && (

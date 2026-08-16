@@ -3,11 +3,13 @@ import { cn } from '@/lib/utils'
 
 interface CategoryBadgeProps {
   category: CategoryId
+  label?: string
+  color?: string
   className?: string
 }
 
-export function CategoryBadge({ category, className }: CategoryBadgeProps) {
-  const { label, color, softBg } = getCategory(category)
+export function CategoryBadge({ category, label: customLabel, color: customColor, className }: CategoryBadgeProps) {
+  const { label, color, softBg } = getCategory(category, customLabel, customColor)
   return (
     <span
       className={cn(
