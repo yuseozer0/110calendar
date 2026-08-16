@@ -197,6 +197,25 @@
   border-radius: 1rem;
 }
 
+/* Some installed iOS PWAs incorrectly report a zero top inset on first launch.
+   Keep the entire header below the status bar/Dynamic Island in standalone mode
+   even in that case. Regular Safari keeps using the smaller spacing above. */
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) and (max-width: 1023px) {
+    .mobile-header-safe {
+      padding-top: max(calc(env(safe-area-inset-top) + 0.75rem), 4rem);
+    }
+
+    .viewport-dialog {
+      padding-top: max(calc(env(safe-area-inset-top) + 0.75rem), 4rem);
+    }
+
+    .viewport-dialog-panel {
+      max-height: calc(100dvh - 5.5rem - env(safe-area-inset-bottom));
+    }
+  }
+}
+
 /* Prevent iOS Safari from zooming form fields and pushing dialogs off-screen. */
 @media (max-width: 639px) {
   input,

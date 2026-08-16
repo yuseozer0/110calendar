@@ -242,7 +242,7 @@ export default function Page() {
   )
 
   return (
-    <div className="min-h-screen bg-background lg:grid lg:grid-cols-[18rem_1fr]">
+    <div className="min-h-dvh bg-background lg:grid lg:grid-cols-[18rem_1fr]">
       <AppSidebar
         query={query}
         onQueryChange={setQuery}
@@ -262,7 +262,7 @@ export default function Page() {
         onAdd={openAdd}
       />
 
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-dvh flex-col">
         {/* Header for phone + iPad portrait */}
         <header className="mobile-header-safe sticky top-0 z-30 border-b border-border bg-background/95 px-4 pb-3 backdrop-blur lg:hidden">
           <div className="flex items-center justify-between gap-3">
