@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useEvents } from '@/hooks/use-events'
 import type { ClassEvent, EventDraft } from '@/lib/types'
 import type { CategoryId } from '@/lib/categories'
@@ -27,6 +27,7 @@ import { AdminAuthButton } from '@/components/admin-auth'
 import { PwaActions } from '@/components/pwa-actions'
 import { useFirebase } from '@/components/firebase-provider'
 import { MealCard } from '@/components/meal-card'
+import { VisibilityFilter, type VisibilityFilterValue } from '@/components/visibility-filter'
 
 function sortEvents(list: ClassEvent[]): ClassEvent[] {
   return [...list].sort((a, b) => {
@@ -48,7 +49,7 @@ export default function Page() {
     updateEvent,
     deleteEvent,
   } = useEvents()
-  const { isAdmin, authLoading, ready } = useFirebase()
+  const { user, isAdmin, authLoading, ready } = useFirebase()
 
   const todayKey = toDateKey(new Date())
   const [monthDate, setMonthDate] = useState(() => {
@@ -58,15 +59,25 @@ export default function Page() {
   const [selectedKey, setSelectedKey] = useState(todayKey)
   const [activeCategories, setActiveCategories] = useState<CategoryId[]>([])
   const [query, setQuery] = useState('')
+  const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilterValue>('all')
   const [mobileView, setMobileView] = useState<MobileView>('calendar')
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<ClassEvent | null>(null)
 
+  useEffect(() => {
+    if (!user) setVisibilityFilter('all')
+  }, [user])
+
+  const visibilityFiltered = useMemo(() => {
+    if (visibilityFilter === 'all') return events
+    return events.filter((event) => event.visibility === visibilityFilter)
+  }, [events, visibilityFilter])
+
   const categoryFiltered = useMemo(() => {
-    if (activeCategories.length === 0) return events
-    return events.filter((e) => activeCategories.includes(e.category))
-  }, [events, activeCategories])
+    if (activeCategories.length === 0) return visibilityFiltered
+    return visibilityFiltered.filter((event) => activeCategories.includes(event.category))
+  }, [visibilityFiltered, activeCategories])
 
   const eventsByDay = useMemo(() => {
     const map = new Map<string, ClassEvent[]>()
@@ -102,7 +113,7 @@ export default function Page() {
 
   const ddayEvents = useMemo(
     () =>
-      [...events]
+      [...visibilityFiltered]
         .filter((event) => event.isDday)
         .sort((a, b) => {
           const aDistance = todayKey < a.date
@@ -118,12 +129,12 @@ export default function Page() {
           return aDistance - bDistance
         })
         .slice(0, 3),
-    [events, todayKey],
+    [visibilityFiltered, todayKey],
   )
 
   const pinnedEvents = useMemo(
-    () => sortEvents(events.filter((event) => event.isPinned)).slice(0, 3),
-    [events],
+    () => sortEvents(visibilityFiltered.filter((event) => event.isPinned)).slice(0, 3),
+    [visibilityFiltered],
   )
 
   const hasQuery = query.trim().length > 0
@@ -134,6 +145,11 @@ export default function Page() {
     )
   const resetCategories = () => setActiveCategories([])
 
+  const canManageEvent = (event: ClassEvent) =>
+    event.visibility === 'class'
+      ? isAdmin
+      : Boolean(user && event.ownerId === user.uid)
+
   const openAdd = () => {
     setEditing(null)
     setDialogOpen(true)
@@ -143,9 +159,8 @@ export default function Page() {
     setDialogOpen(true)
   }
   const handleSave = async (draft: EventDraft) => {
-    if (!isAdmin) throw new Error('관리자만 일정을 저장할 수 있습니다.')
     if (editing) {
-      await updateEvent(editing.id, draft)
+      await updateEvent(editing, draft)
     } else {
       await addEvent(draft)
       setSelectedKey(draft.date)
@@ -184,7 +199,8 @@ export default function Page() {
       subtitle={selectedDateLabel}
       events={selectedDayEvents}
       emptyMessage="이 날에는 등록된 일정이 없어요."
-      canManage={isAdmin}
+      canAdd={Boolean(user)}
+      canManageEvent={canManageEvent}
       onAdd={openAdd}
       onEdit={openEdit}
       onDelete={deleteEvent}
@@ -204,7 +220,7 @@ export default function Page() {
         hasQuery ? '검색 결과가 없어요.' : '다가오는 일정이 없어요.'
       }
       showDate
-      canManage={isAdmin}
+      canManageEvent={canManageEvent}
       onEdit={openEdit}
       onDelete={deleteEvent}
     />
@@ -218,7 +234,10 @@ export default function Page() {
         activeCategories={activeCategories}
         onToggleCategory={toggleCategory}
         onResetCategories={resetCategories}
-        canManage={isAdmin}
+        loggedIn={Boolean(user)}
+        visibilityFilter={visibilityFilter}
+        onVisibilityChange={setVisibilityFilter}
+        canAdd={Boolean(user)}
         onAdd={openAdd}
       />
 
@@ -237,6 +256,7 @@ export default function Page() {
         {/* iPad portrait search + filter bar */}
         <div className="hidden gap-3 border-b border-border px-4 py-3 md:flex md:flex-col lg:hidden">
           <SearchBar id="tablet-search" value={query} onChange={setQuery} />
+          {user && <VisibilityFilter value={visibilityFilter} onChange={setVisibilityFilter} />}
           <CategoryFilter
             active={activeCategories}
             onToggle={toggleCategory}
@@ -256,6 +276,11 @@ export default function Page() {
               <button type="button" className="shrink-0 font-medium underline" onClick={clearNotificationStatus}>닫기</button>
             </div>
           )}
+          {user && (
+            <div className="mb-4 md:hidden">
+              <VisibilityFilter value={visibilityFilter} onChange={setVisibilityFilter} />
+            </div>
+          )}
           {!ready ? (
             <p className="rounded-xl bg-destructive/10 p-4 text-center text-sm text-destructive">
               Firebase 환경변수가 설정되지 않았습니다.
@@ -272,7 +297,7 @@ export default function Page() {
                 ddayEvents={ddayEvents}
                 pinnedEvents={pinnedEvents}
                 todayKey={todayKey}
-                canManage={isAdmin}
+                canManageEvent={canManageEvent}
                 onEdit={openEdit}
               />
 
@@ -316,11 +341,11 @@ export default function Page() {
           )}
         </main>
 
-        <BottomNav
-          view={mobileView}
-          onViewChange={setMobileView}
-          canManage={isAdmin}
-          onAdd={openAdd}
+      <BottomNav
+        view={mobileView}
+        onViewChange={setMobileView}
+        canAdd={Boolean(user)}
+        onAdd={openAdd}
         />
       </div>
 
@@ -328,6 +353,7 @@ export default function Page() {
         open={dialogOpen}
         defaultDate={selectedKey}
         editing={editing}
+        canCreateClass={isAdmin}
         onClose={() => {
           setDialogOpen(false)
           setEditing(null)

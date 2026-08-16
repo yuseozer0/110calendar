@@ -1,6 +1,5 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Noto_Sans_KR } from 'next/font/google'
 import { FirebaseProvider, type FirebaseConfig } from '@/components/firebase-provider'
 import './globals.css'
 
@@ -12,12 +11,6 @@ const firebaseConfig: FirebaseConfig = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? '',
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? '',
 }
-
-const notoSansKr = Noto_Sans_KR({
-  subsets: ['latin'],
-  weight: ['400', '500', '700'],
-  variable: '--font-noto-sans-kr',
-})
 
 export const metadata: Metadata = {
   title: '110 캘린더',
@@ -53,7 +46,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ko" className={`${notoSansKr.variable} bg-background`}>
+    <html lang="ko" className="bg-background">
       <body className="font-sans antialiased">
         <FirebaseProvider config={firebaseConfig}>{children}</FirebaseProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
