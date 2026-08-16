@@ -1,4 +1,4 @@
-export type CategoryId =
+export type DefaultCategoryId =
   | 'performance'
   | 'presentation'
   | 'exam'
@@ -6,6 +6,8 @@ export type CategoryId =
   | 'supplies'
   | 'notice'
   | 'etc'
+
+export type CategoryId = DefaultCategoryId | `custom_${string}`
 
 export interface Category {
   id: CategoryId
@@ -26,14 +28,19 @@ export const CATEGORIES: Category[] = [
   { id: 'etc', label: '기타', color: '#57534e', softBg: '#57534e1f' },
 ]
 
-export const CATEGORY_MAP: Record<CategoryId, Category> = CATEGORIES.reduce(
+export const CATEGORY_MAP: Record<string, Category> = CATEGORIES.reduce(
   (acc, category) => {
     acc[category.id] = category
     return acc
   },
-  {} as Record<CategoryId, Category>,
+  {} as Record<string, Category>,
 )
 
-export function getCategory(id: CategoryId): Category {
-  return CATEGORY_MAP[id] ?? CATEGORY_MAP.etc
+export function getCategory(id: CategoryId, customLabel?: string, customColor?: string): Category {
+  const standard = CATEGORY_MAP[id]
+  if (standard) return standard
+  if (customLabel && customColor) {
+    return { id, label: customLabel, color: customColor, softBg: `${customColor}1f` }
+  }
+  return CATEGORY_MAP.etc
 }

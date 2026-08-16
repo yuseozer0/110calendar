@@ -12,6 +12,9 @@ export interface ClassEvent {
   /** Optional time string: HH:mm */
   time?: string
   category: CategoryId
+  /** Snapshot of a user-created personal category for stable event display. */
+  categoryLabel?: string
+  categoryColor?: string
   description?: string
   /** Compressed image stored with the schedule. */
   imageUrl?: string
