@@ -172,6 +172,24 @@
   padding-top: env(safe-area-inset-top);
 }
 
+/* Keep bottom sheets and dialogs inside the visible phone viewport, including
+   iPhone notches, the Dynamic Island and the home indicator. */
+.viewport-dialog {
+  align-items: center;
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+}
+
+.viewport-dialog-panel {
+  max-height: calc(
+    100dvh - max(0.75rem, env(safe-area-inset-top)) - max(0.75rem, env(safe-area-inset-bottom))
+  );
+  overscroll-behavior: contain;
+  border-radius: 1rem;
+}
+
 /* Prevent iOS Safari from zooming form fields and pushing dialogs off-screen. */
 @media (max-width: 639px) {
   input,

@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useEvents } from '@/hooks/use-events'
+import { usePersonalCategories } from '@/hooks/use-personal-categories'
 import type { ClassEvent, EventDraft } from '@/lib/types'
-import type { CategoryId } from '@/lib/categories'
+import { CATEGORIES, type CategoryId } from '@/lib/categories'
 import {
   addMonths,
   dateKeyInRange,
@@ -49,6 +50,12 @@ export default function Page() {
     updateEvent,
     deleteEvent,
   } = useEvents()
+  const {
+    categories: personalCategories,
+    addCategory,
+    renameCategory,
+    deleteCategory,
+  } = usePersonalCategories()
   const { user, isAdmin, authLoading, ready } = useFirebase()
 
   const todayKey = toDateKey(new Date())
@@ -68,6 +75,14 @@ export default function Page() {
   useEffect(() => {
     if (!user) setVisibilityFilter('all')
   }, [user])
+
+  useEffect(() => {
+    setActiveCategories([])
+  }, [visibilityFilter])
+
+  const filterCategories = visibilityFilter === 'private'
+    ? [...CATEGORIES, ...personalCategories]
+    : CATEGORIES
 
   const visibilityFiltered = useMemo(() => {
     if (visibilityFilter === 'all') return events
@@ -234,6 +249,12 @@ export default function Page() {
         activeCategories={activeCategories}
         onToggleCategory={toggleCategory}
         onResetCategories={resetCategories}
+        filterCategories={filterCategories}
+        personalCategories={personalCategories}
+        canManagePersonalCategories={visibilityFilter === 'private'}
+        onAddCategory={addCategory}
+        onRenameCategory={renameCategory}
+        onDeleteCategory={deleteCategory}
         loggedIn={Boolean(user)}
         visibilityFilter={visibilityFilter}
         onVisibilityChange={setVisibilityFilter}
@@ -248,8 +269,13 @@ export default function Page() {
             <BrandHeader compact />
             <div className="flex items-center gap-1">
               <PwaActions compact />
-              <AdminAuthButton compact />
+              <div className="hidden md:block">
+                <AdminAuthButton compact />
+              </div>
             </div>
+          </div>
+          <div className="mt-2 [&>button]:w-full md:hidden">
+            <AdminAuthButton />
           </div>
         </header>
 
@@ -261,6 +287,12 @@ export default function Page() {
             active={activeCategories}
             onToggle={toggleCategory}
             onReset={resetCategories}
+            categories={filterCategories}
+            personalCategories={personalCategories}
+            canManagePersonal={visibilityFilter === 'private'}
+            onAddCategory={addCategory}
+            onRenameCategory={renameCategory}
+            onDeleteCategory={deleteCategory}
           />
         </div>
 
@@ -323,6 +355,12 @@ export default function Page() {
                       active={activeCategories}
                       onToggle={toggleCategory}
                       onReset={resetCategories}
+                      categories={filterCategories}
+                      personalCategories={personalCategories}
+                      canManagePersonal={visibilityFilter === 'private'}
+                      onAddCategory={addCategory}
+                      onRenameCategory={renameCategory}
+                      onDeleteCategory={deleteCategory}
                     />
                     {resultsBlock}
                   </>
@@ -354,6 +392,8 @@ export default function Page() {
         defaultDate={selectedKey}
         editing={editing}
         canCreateClass={isAdmin}
+        defaultVisibility={visibilityFilter === 'private' ? 'private' : isAdmin ? 'class' : 'private'}
+        personalCategories={personalCategories}
         onClose={() => {
           setDialogOpen(false)
           setEditing(null)
