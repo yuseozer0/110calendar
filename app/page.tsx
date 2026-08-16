@@ -264,7 +264,7 @@ export default function Page() {
 
       <div className="flex min-h-screen flex-col">
         {/* Header for phone + iPad portrait */}
-        <header className="sticky top-0 z-30 border-b border-border bg-background/95 px-4 py-3 pt-safe backdrop-blur lg:hidden">
+        <header className="mobile-header-safe sticky top-0 z-30 border-b border-border bg-background/95 px-4 pb-3 backdrop-blur lg:hidden">
           <div className="flex items-center justify-between gap-3">
             <BrandHeader compact />
             <div className="flex items-center gap-1">
