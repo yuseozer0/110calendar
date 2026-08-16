@@ -32,6 +32,8 @@ function toDocData(draft: EventDraft): Record<string, unknown> {
     date: draft.date,
     category: draft.category,
   }
+  if (draft.categoryLabel) data.categoryLabel = draft.categoryLabel
+  if (draft.categoryColor) data.categoryColor = draft.categoryColor
   if (draft.time) data.time = draft.time
   if (draft.description) data.description = draft.description
   if (draft.imageUrl) data.imageUrl = draft.imageUrl
@@ -54,6 +56,8 @@ function fromDoc(
     endDate: typeof data.endDate === 'string' ? data.endDate : undefined,
     time: (data.time as string) || undefined,
     category: (data.category as CategoryId) ?? 'etc',
+    categoryLabel: typeof data.categoryLabel === 'string' ? data.categoryLabel : undefined,
+    categoryColor: typeof data.categoryColor === 'string' ? data.categoryColor : undefined,
     description: (data.description as string) || undefined,
     imageUrl: typeof data.imageUrl === 'string' ? data.imageUrl : undefined,
     isDday: data.isDday === true,
@@ -211,6 +215,8 @@ export function useEvents() {
         endDate: draft.endDate && draft.endDate !== draft.date ? draft.endDate : null,
         isDday: draft.isDday === true,
         isPinned: draft.isPinned === true,
+        categoryLabel: draft.categoryLabel ?? null,
+        categoryColor: draft.categoryColor ?? null,
       }
 
       if (event.visibility === 'private') {
