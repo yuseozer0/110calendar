@@ -15,6 +15,8 @@ service cloud.firestore {
       return data.title is string
         && data.date is string
         && data.category is string
+        && (!('categoryLabel' in data) || data.categoryLabel == null || (data.categoryLabel is string && data.categoryLabel.size() <= 12))
+        && (!('categoryColor' in data) || data.categoryColor == null || (data.categoryColor is string && data.categoryColor.size() <= 20))
         && (!('endDate' in data) || data.endDate == null || data.endDate is string)
         && (!('time' in data) || data.time == null || data.time is string)
         && (!('description' in data) || data.description == null || data.description is string)
@@ -35,6 +37,16 @@ service cloud.firestore {
         && request.resource.data.ownerId == uid
         && isValidSchedule(request.resource.data);
       allow delete: if isOwner(uid);
+    }
+
+    match /users/{uid}/personalCategories/{categoryId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.label is string
+        && request.resource.data.label.size() > 0
+        && request.resource.data.label.size() <= 12
+        && request.resource.data.color is string
+        && request.resource.data.color.size() <= 20;
     }
 
     match /admins/{uid} {
