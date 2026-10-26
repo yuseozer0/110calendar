@@ -139,9 +139,11 @@ export function CalendarGrid({
                     style={{ backgroundColor: category.color }}
                   >
                     {!isLong || isStart ? <span className="size-1.5 shrink-0 rounded-full border border-white/90" /> : null}
-                    <span className="truncate">
-                      {event.title}{isLong && isStart ? ` · ~ ${endKey.slice(5).replace('-', '/')}` : ''}
-                    </span>
+                    {(!isLong || isStart) && (
+                      <span className="truncate">
+                        {event.title}{isLong ? ` · ~ ${endKey.slice(5).replace('-', '/')}` : ''}
+                      </span>
+                    )}
                   </span>
                   )
                 })}
