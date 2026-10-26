@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { FirebaseProvider, type FirebaseConfig } from '@/components/firebase-provider'
+import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
 const firebaseConfig: FirebaseConfig = {
@@ -46,9 +47,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ko" className="bg-background">
+    <html lang="ko" className="bg-background" suppressHydrationWarning>
       <body className="font-sans antialiased">
-        <FirebaseProvider config={firebaseConfig}>{children}</FirebaseProvider>
+        <ThemeProvider>
+          <FirebaseProvider config={firebaseConfig}>{children}</FirebaseProvider>
+        </ThemeProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
