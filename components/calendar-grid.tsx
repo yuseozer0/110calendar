@@ -8,7 +8,9 @@ import {
   WEEKDAY_LABELS,
   formatMonthTitle,
   getCalendarGrid,
+  getEventEndDate,
   isSameDay,
+  daysBetween,
   toDateKey,
 } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
@@ -88,6 +90,10 @@ export function CalendarGrid({
           const isToday = isSameDay(day, today)
           const isSelected = key === selectedKey
           const weekday = day.getDay()
+          // Long-running schedules are represented once at their start date.
+          // The following days keep a quiet continuation bar so the duration
+          // remains visible without repeating the same title in every cell.
+          const visibleEvents = dayEvents
 
           return (
             <button
@@ -115,19 +121,33 @@ export function CalendarGrid({
                 {day.getDate()}{day.getDate() === 1 && <span className="hidden sm:inline">일</span>}
               </span>
               <span className="flex min-w-0 flex-col gap-0.5">
-                {dayEvents.slice(0, 3).map((event, index) => (
+                {visibleEvents.slice(0, 3).map((event, index) => {
+                  const endKey = getEventEndDate(event)
+                  const duration = daysBetween(event.date, endKey)
+                  const isLong = duration >= 7
+                  const isStart = event.date === key
+                  const category = getCategory(event.category, event.categoryLabel, event.categoryColor)
+                  return (
                   <span
                     key={`${event.visibility}:${event.id}`}
-                    className={cn('min-w-0 items-center gap-1 overflow-hidden rounded px-1 py-0.5 text-left text-[9px] font-semibold leading-tight text-white sm:text-xs', index === 2 ? 'hidden sm:flex' : 'flex')}
-                    style={{ backgroundColor: getCategory(event.category, event.categoryLabel, event.categoryColor).color }}
+                    title={isLong ? `${event.title} · ${event.date} ~ ${endKey}` : event.title}
+                    className={cn(
+                      'min-w-0 items-center gap-1 overflow-hidden rounded px-1 py-0.5 text-left text-[9px] font-semibold leading-tight text-white sm:text-xs',
+                      index === 2 ? 'hidden sm:flex' : 'flex',
+                      isLong && !isStart && 'h-1.5 rounded-none px-0 py-0 text-transparent sm:h-2',
+                    )}
+                    style={{ backgroundColor: category.color }}
                   >
-                    <span className="size-1.5 shrink-0 rounded-full border border-white/90" />
-                    <span className="truncate">{event.title}</span>
+                    {!isLong || isStart ? <span className="size-1.5 shrink-0 rounded-full border border-white/90" /> : null}
+                    <span className="truncate">
+                      {event.title}{isLong && isStart ? ` · ~ ${endKey.slice(5).replace('-', '/')}` : ''}
+                    </span>
                   </span>
-                ))}
-                {dayEvents.length > 3 && (
+                  )
+                })}
+                {visibleEvents.length > 3 && (
                   <span className="px-1 text-left text-[9px] leading-none text-muted-foreground sm:text-[10px]">
-                    +{dayEvents.length - 3}개
+                    +{visibleEvents.length - 3}개
                   </span>
                 )}
               </span>
@@ -138,3 +158,4 @@ export function CalendarGrid({
     </section>
   )
 }
+
