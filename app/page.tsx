@@ -16,12 +16,12 @@ import {
   toDateKey,
 } from '@/lib/date-utils'
 import { BrandHeader } from '@/components/brand-header'
-import { AppSidebar } from '@/components/app-sidebar'
 import { CalendarGrid } from '@/components/calendar-grid'
 import { CategoryFilter } from '@/components/category-filter'
 import { SearchBar } from '@/components/search-bar'
 import { EventList } from '@/components/event-list'
-import { BottomNav, type MobileView } from '@/components/bottom-nav'
+import { BottomNav } from '@/components/bottom-nav'
+import { AppTabs, type AppView } from '@/components/app-tabs'
 import { EventDialog } from '@/components/event-dialog'
 import { EventHighlights } from '@/components/event-highlights'
 import { AdminAuthButton } from '@/components/admin-auth'
@@ -29,6 +29,9 @@ import { PwaActions } from '@/components/pwa-actions'
 import { useFirebase } from '@/components/firebase-provider'
 import { MealCard } from '@/components/meal-card'
 import { VisibilityFilter, type VisibilityFilterValue } from '@/components/visibility-filter'
+import { ThemeSettings } from '@/components/theme-settings'
+import { Button } from '@/components/ui/button'
+import { Plus } from 'lucide-react'
 
 function sortEvents(list: ClassEvent[]): ClassEvent[] {
   return [...list].sort((a, b) => {
@@ -67,7 +70,7 @@ export default function Page() {
   const [activeCategories, setActiveCategories] = useState<CategoryId[]>([])
   const [query, setQuery] = useState('')
   const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilterValue>('all')
-  const [mobileView, setMobileView] = useState<MobileView>('calendar')
+  const [view, setView] = useState<AppView>('calendar')
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<ClassEvent | null>(null)
@@ -242,61 +245,21 @@ export default function Page() {
   )
 
   return (
-    <div className="min-h-dvh bg-background lg:grid lg:grid-cols-[18rem_1fr]">
-      <AppSidebar
-        query={query}
-        onQueryChange={setQuery}
-        activeCategories={activeCategories}
-        onToggleCategory={toggleCategory}
-        onResetCategories={resetCategories}
-        filterCategories={filterCategories}
-        personalCategories={personalCategories}
-        canManagePersonalCategories={visibilityFilter === 'private'}
-        onAddCategory={addCategory}
-        onRenameCategory={renameCategory}
-        onDeleteCategory={deleteCategory}
-        loggedIn={Boolean(user)}
-        visibilityFilter={visibilityFilter}
-        onVisibilityChange={setVisibilityFilter}
-        canAdd={Boolean(user)}
-        onAdd={openAdd}
-      />
-
-      <div className="flex min-h-dvh flex-col">
-        {/* Header for phone + iPad portrait */}
-        <header className="mobile-header-safe sticky top-0 z-30 border-b border-border bg-background/95 px-4 pb-3 backdrop-blur lg:hidden">
-          <div className="flex items-center justify-between gap-3">
-            <BrandHeader compact />
-            <div className="flex items-center gap-1">
-              <PwaActions compact />
-              <div className="hidden md:block">
-                <AdminAuthButton compact />
-              </div>
-            </div>
+    <div className="flex min-h-dvh flex-col bg-background">
+      <header className="mobile-header-safe sticky top-0 z-30 border-b border-border bg-card/88 pb-3 shadow-sm backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-[96rem] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+          <BrandHeader compact />
+          <AppTabs view={view} onViewChange={setView} className="hidden md:flex" />
+          <div className="flex items-center gap-1.5">
+            {user && <Button onClick={openAdd} size="sm" className="hidden sm:inline-flex"><Plus className="size-4" />일정 추가</Button>}
+            <ThemeSettings />
+            <PwaActions compact />
+            <AdminAuthButton compact />
           </div>
-          <div className="mt-2 [&>button]:w-full md:hidden">
-            <AdminAuthButton />
-          </div>
-        </header>
-
-        {/* iPad portrait search + filter bar */}
-        <div className="hidden gap-3 border-b border-border px-4 py-3 md:flex md:flex-col lg:hidden">
-          <SearchBar id="tablet-search" value={query} onChange={setQuery} />
-          {user && <VisibilityFilter value={visibilityFilter} onChange={setVisibilityFilter} />}
-          <CategoryFilter
-            active={activeCategories}
-            onToggle={toggleCategory}
-            onReset={resetCategories}
-            categories={filterCategories}
-            personalCategories={personalCategories}
-            canManagePersonal={visibilityFilter === 'private'}
-            onAddCategory={addCategory}
-            onRenameCategory={renameCategory}
-            onDeleteCategory={deleteCategory}
-          />
         </div>
+      </header>
 
-        <main className="flex-1 px-4 py-4">
+      <main className="mx-auto w-full max-w-[96rem] flex-1 px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
           {notificationStatus && (
             <div
               role="status"
@@ -306,11 +269,6 @@ export default function Page() {
             >
               <span>{notificationStatus.message}</span>
               <button type="button" className="shrink-0 font-medium underline" onClick={clearNotificationStatus}>닫기</button>
-            </div>
-          )}
-          {user && (
-            <div className="mb-4 md:hidden">
-              <VisibilityFilter value={visibilityFilter} onChange={setVisibilityFilter} />
             </div>
           )}
           {!ready ? (
@@ -325,67 +283,32 @@ export default function Page() {
             </p>
           ) : (
             <>
-              <EventHighlights
-                ddayEvents={ddayEvents}
-                pinnedEvents={pinnedEvents}
-                todayKey={todayKey}
-                canManageEvent={canManageEvent}
-                onEdit={openEdit}
-              />
-
-              <div className="mb-4">
-                <MealCard />
-              </div>
-
-              {/* Phone: single column, tab-driven */}
-              <div className="flex flex-col gap-4 md:hidden">
-                {mobileView === 'calendar' ? (
-                  <>
-                    {calendarBlock}
-                    {selectedDayBlock}
-                  </>
-                ) : (
-                  <>
-                    <SearchBar
-                      id="mobile-search"
-                      value={query}
-                      onChange={setQuery}
-                    />
-                    <CategoryFilter
-                      active={activeCategories}
-                      onToggle={toggleCategory}
-                      onReset={resetCategories}
-                      categories={filterCategories}
-                      personalCategories={personalCategories}
-                      canManagePersonal={visibilityFilter === 'private'}
-                      onAddCategory={addCategory}
-                      onRenameCategory={renameCategory}
-                      onDeleteCategory={deleteCategory}
-                    />
-                    {resultsBlock}
-                  </>
-                )}
-              </div>
-
-              {/* iPad portrait: 2 columns / landscape: wide calendar + panel */}
-              <div className="hidden gap-4 md:grid md:grid-cols-2 lg:grid-cols-[1.7fr_1fr]">
-                <div className="flex flex-col gap-4">{calendarBlock}</div>
-                <div className="flex flex-col gap-4">
-                  {selectedDayBlock}
+              {view === 'calendar' && (
+                <div className="space-y-4 sm:space-y-6">
+                  <EventHighlights ddayEvents={ddayEvents} pinnedEvents={pinnedEvents} todayKey={todayKey} canManageEvent={canManageEvent} onEdit={openEdit} />
+                  {calendarBlock}
+                  <div className="mx-auto max-w-4xl">{selectedDayBlock}</div>
+                </div>
+              )}
+              {view === 'events' && (
+                <div className="mx-auto max-w-5xl space-y-4">
+                  <div className="theme-surface-shadow rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+                    <div className="mb-4"><h2 className="text-xl font-bold tracking-tight">전체 일정</h2></div>
+                    <div className="space-y-3">
+                      <SearchBar id="event-search" value={query} onChange={setQuery} />
+                      {user && <VisibilityFilter value={visibilityFilter} onChange={setVisibilityFilter} />}
+                      <CategoryFilter active={activeCategories} onToggle={toggleCategory} onReset={resetCategories} categories={filterCategories} personalCategories={personalCategories} canManagePersonal={visibilityFilter === 'private'} onAddCategory={addCategory} onRenameCategory={renameCategory} onDeleteCategory={deleteCategory} />
+                    </div>
+                  </div>
                   {resultsBlock}
                 </div>
-              </div>
+              )}
+              {view === 'meals' && <div className="mx-auto max-w-3xl"><MealCard /></div>}
             </>
           )}
-        </main>
+      </main>
 
-      <BottomNav
-        view={mobileView}
-        onViewChange={setMobileView}
-        canAdd={Boolean(user)}
-        onAdd={openAdd}
-        />
-      </div>
+      <BottomNav view={view} onViewChange={setView} canAdd={Boolean(user)} onAdd={openAdd} />
 
       <EventDialog
         open={dialogOpen}
